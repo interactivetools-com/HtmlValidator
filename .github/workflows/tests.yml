@@ -1,0 +1,57 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      php:
+        description: 'PHP version (blank = all)'
+        required: false
+        type: choice
+        options: ['', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6']
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    # 8.6 is prerelease: report its result but never fail the build; drop this when 8.6 ships
+    continue-on-error: ${{ matrix.php == '8.6' }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        php: ${{ inputs.php && fromJSON(format('["{0}"]', inputs.php)) || fromJSON('["8.1","8.2","8.3","8.4","8.5","8.6"]') }}
+        include:
+          # OS/arch bugs (paths, case-insensitive filenames, char signedness in
+          # extensions) don't vary by PHP version, so one job per platform at the
+          # 8.1 floor. No Windows ARM job: php.net ships no ARM64 Windows builds.
+          - { os: windows-latest,    php: '8.1' }   # Windows x64 - CMSB production
+          - { os: ubuntu-24.04-arm,  php: '8.1' }   # Linux arm64 - Graviton-class hosts
+          - { os: macos-latest,      php: '8.1' }   # macOS arm64 - Apple Silicon devs
+          # macos-15-intel is off: setup-php often can't install PHP 8.1 there and the job fails before any test runs
+          # - { os: macos-15-intel,    php: '8.1' }   # macOS x64 - Intel Macs
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run tests
+        run: vendor/bin/phpunit --colors=always

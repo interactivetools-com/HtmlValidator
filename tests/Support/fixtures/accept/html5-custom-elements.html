@@ -1,0 +1,58 @@
+<article id="post-42" class="post" data-post-id="42" data-category="news">
+  <header>
+    <h1>Release notes</h1>
+    <p>Published <time datetime="2026-09-14T09:00:00-07:00">14 September 2026</time> by <span class="author">the team</span></p>
+  </header>
+  <nav aria-label="On this page">
+    <ul>
+      <li><a href="#changes">Changes</a></li>
+      <li><a href="#downloads">Downloads</a></li>
+    </ul>
+  </nav>
+  <section id="changes">
+    <h2>Changes</h2>
+    <details open>
+      <summary>Faster search</summary>
+      <p>Search now returns results in <mark>under 100 ms</mark> for most queries. Progress: <progress value="70" max="100">70%</progress></p>
+    </details>
+    <details>
+      <summary>Storage</summary>
+      <p>Disk use <meter value="0.6" min="0" max="1">60%</meter>. Press <kbd>Ctrl</kbd>+<kbd>K</kbd> to search.</p>
+    </details>
+    <p>Version <data value="4.2.0">4.2</data> is <abbr title="long-term support">LTS</abbr>. See <cite>the changelog</cite> and <q>the upgrade guide</q>.</p>
+    <p>Chemistry: H<sub>2</sub>O, E = mc<sup>2</sup>. <ruby>漢<rp>(</rp><rt>kan</rt><rp>)</rp></ruby></p>
+    <pre><code class="language-php">$result = HtmlValidator::check($html);
+if (!$result-&gt;ok) {
+    echo $result-&gt;errors[0]-&gt;message;
+}</code></pre>
+  </section>
+  <section id="downloads">
+    <h2>Downloads</h2>
+    <picture>
+      <source srcset="/images/hero.avif 1x, /images/hero@2x.avif 2x" type="image/avif">
+      <source srcset="https://cdn.example.com/hero.webp" type="image/webp" media="(min-width: 800px)">
+      <img src="/images/hero.jpg" srcset="/images/hero@2x.jpg 2x" alt="Screenshot" width="800" height="450" loading="lazy" decoding="async">
+    </picture>
+    <p><a href="/downloads/app-4.2.0.zip" download>Download</a> or <a href="https://example.com/mirror/" target="_blank" rel="noopener noreferrer">use a mirror</a>.</p>
+    <audio controls preload="none" src="/media/intro.mp3">Your browser does not support audio.</audio>
+    <video controls poster="/media/intro.jpg" width="640" height="360">
+      <source src="/media/intro.mp4" type="video/mp4">
+      <track kind="captions" src="/media/intro.vtt" srclang="en" label="English" default>
+    </video>
+  </section>
+  <aside>
+    <product-card sku="A-100" price="19.99" currency="CAD" data-track="card">
+      <span slot="title">Starter plan</span>
+      <star-rating value="4.5" max="5"></star-rating>
+    </product-card>
+    <x-1.0_b-c>a custom element with digits and dots in the name</x-1.0_b-c>
+    <div role="alert" aria-live="polite" hidden>Saved.</div>
+    <div contenteditable="true" spellcheck="false" tabindex="0" draggable="true">Editable</div>
+    <dialog id="confirm"><p>Delete this file?</p><p><a href="#close">Cancel</a></p></dialog>
+    <template-preview data-src="/preview">unknown attributes on a custom element are fine</template-preview>
+  </aside>
+  <footer>
+    <address>Interactive Tools, Vancouver, <a href="https://maps.example.com/?q=vancouver">map</a></address>
+    <p><small>Copyright &copy; 2026. <bdi>User 1</bdi> wrote <bdo dir="rtl">this</bdo>.</small> <wbr></p>
+  </footer>
+</article>
