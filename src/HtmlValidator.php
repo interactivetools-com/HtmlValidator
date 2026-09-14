@@ -27,8 +27,8 @@ use const PREG_OFFSET_CAPTURE;
  * script, loads a plugin, belongs in <head>, or changes how a browser reads the bytes after
  * it, plus custom elements (any name with a hyphen). Attributes are pattern-based: on* and
  * srcdoc are refused, URL attributes may only use http, https, mailto and tel, no attribute
- * may start with javascript:, vbscript: or data:, and CSS is checked for the constructs that
- * once ran script. Unknown attributes pass.
+ * may start with javascript:, and CSS is checked for the constructs that once ran script and
+ * the two selectors that leak page data. Unknown attributes pass.
  *
  * The check runs on the HTML5 token stream and never builds a tree, so it sees the same
  * tags and attributes a browser does, in one pass, with memory that does not grow with

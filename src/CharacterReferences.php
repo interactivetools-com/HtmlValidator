@@ -16,6 +16,7 @@ use function substr;
 
 use const ENT_HTML5;
 use const ENT_QUOTES;
+use const PREG_OFFSET_CAPTURE;
 
 /**
  * Decodes HTML character references (&amp; &#65; &#x41;) the way the HTML5 tokenizer does.
