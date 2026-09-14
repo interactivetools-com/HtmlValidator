@@ -92,10 +92,11 @@ final class HtmlValidator
     // a custom element name: a letter, then letters, digits, dots or underscores, with at least one hyphen
     private const CUSTOM_ELEMENT = '/^[a-z][a-z0-9._]*-[a-z0-9._-]*$/';
 
-    // CSS that ran script in some browser, or hides what the rest of the stylesheet says: backslash escapes
-    // (\6a avascript), @import and @charset, the image()/image-set()/src() URL functions, IE expression()
-    // and behavior:, Firefox -moz-binding
-    private const CSS_FORBIDDEN = '/\\\\|@import|@charset|image\(|image-set\(|src\(|expression\(|-moz-binding|behavior\s*:/i';
+    // CSS that ran script in some browser, hides what the rest of the stylesheet says, or leaks page data:
+    // backslash escapes (\6a avascript), @import and @charset, the image()/image-set()/src() URL functions,
+    // IE expression() and behavior:, Firefox -moz-binding, and the two selectors that fire on page data
+    // so a url() can report it: [attr^=value] with ^= $= *= and @font-face unicode-range
+    private const CSS_FORBIDDEN = '/\\\\|@import|@charset|image\(|image-set\(|src\(|expression\(|-moz-binding|behavior\s*:|\[[^\]=]*[\^$*]=|unicode-range/i';
 
     // every url( in CSS, capturing what is inside up to the closing quote, paren or whitespace
     private const CSS_URL = '/url\(\s*+["\']?+\s*+([^"\')\s]*)/i';
