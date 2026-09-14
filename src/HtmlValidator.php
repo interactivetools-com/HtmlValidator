@@ -73,18 +73,22 @@ final class HtmlValidator
     /** URL schemes a URL attribute may start with. Anything else with a scheme is refused; values with no scheme pass. */
     public const URL_SCHEMES = ['http', 'https', 'mailto', 'tel'];
 
-    /** Schemes that run script or load a document, refused in every attribute, URL or not. */
-    public const SCRIPT_SCHEMES = ['javascript', 'vbscript', 'data'];
+    /**
+     * Schemes refused at the start of every attribute value, URL attribute or not. The browser
+     * ignores a javascript: in title= or data-href=, but a page script that copies the value
+     * into a link or into location runs it, so no value may start with one.
+     */
+    public const SCRIPT_SCHEMES = ['javascript'];
 
     /** URL schemes allowed inside CSS url(). */
     public const CSS_URL_SCHEMES = ['http', 'https'];
 
     /**
-     * Attributes browsers read as URLs. Their values must have no scheme or one in URL_SCHEMES.
-     * Every other attribute value only has to avoid SCRIPT_SCHEMES, so title="Note: x" passes
-     * and a URL-bearing attribute added to HTML later still cannot carry javascript:.
+     * Attributes current browsers resolve as URLs on an allowed element. Their values must have
+     * no scheme or one in URL_SCHEMES. Every other attribute value only has to avoid
+     * SCRIPT_SCHEMES, so title="Note: x" and a custom element's data="Note: x" pass.
      */
-    public const URL_ATTRIBUTES = ['href', 'src', 'action', 'formaction', 'poster', 'data', 'background', 'cite', 'longdesc', 'ping', 'xlink:href', 'manifest', 'dynsrc', 'lowsrc', 'srcset'];
+    public const URL_ATTRIBUTES = ['href', 'src', 'action', 'formaction', 'poster', 'ping', 'srcset', 'cite', 'longdesc', 'background'];
 
     //endregion
     //region Patterns and Limits

@@ -8,8 +8,8 @@ use Itools\HtmlValidator\Tests\Support\HtmlValidatorTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
- * URL schemes in attribute values: the allowed schemes on URL attributes, the script
- * schemes refused everywhere, and the ways browsers let a scheme hide (entities, whitespace,
+ * URL schemes in attribute values: the allowed schemes on URL attributes, javascript:
+ * refused in every attribute, and the ways browsers let a scheme hide (entities, whitespace,
  * control characters, case).
  *
  * Code: url-scheme-not-allowed.
@@ -99,21 +99,23 @@ final class UrlsTest extends HtmlValidatorTestCase
             'src on img'                 => ['<img src="javascript:alert(1)">'],
             'poster on video'            => ['<video poster="javascript:alert(1)"></video>'],
             'background on table'        => ['<table background="javascript:alert(1)"></table>'],
-            'xlink:href'                 => ['<a xlink:href="javascript:alert(1)">x</a>'],
             'ping'                       => ['<a href="/x" ping="javascript:alert(1)">x</a>'],
             'srcset'                     => ['<img srcset="javascript:alert(1) 1x">'],
             'custom element'             => ['<my-link href="javascript:alert(1)">x</my-link>'],
             'unknown attribute'          => ['<p title="javascript:alert(1)">x</p>'],
-            'data attribute'             => ['<p data-url="javascript:alert(1)">x</p>'],
+            'data attribute'             => ['<tr data-href="javascript:alert(1)">'],   // a clickable-row script would set location to it
+            'custom element attribute'   => ['<my-link url="javascript:alert(1)">x</my-link>'],
+            'xlink:href'                 => ['<a xlink:href="javascript:alert(1)">x</a>'],
         ];
     }
 
-    public function testNonUrlAttributesOnlyRefuseScriptSchemes(): void
+    public function testOtherAttributesOnlyRefuseJavascript(): void
     {
         $this->assertAccepts('<p title="Note: see below" alt="Warning: hot" data-time="noon:sharp" content="width=device-width">x</p>');
         $this->assertAccepts('<a href="/x" title="ftp://example.com/">x</a>');
-        $this->assertRejects('<p title="vbscript:x">x</p>', 'url-scheme-not-allowed', 'title="vbscript:x"');
-        $this->assertRejects('<p title="data:text/html,x">x</p>', 'url-scheme-not-allowed', 'title="data:text/html,x"');
+        $this->assertAccepts('<p title="vbscript:x" data-src="data:image/png;base64,iVBORw0KGgo=">x</p>');   // no current browser runs either as the page
+        $this->assertAccepts('<my-chart data="Note: x" xmlns:o="urn:schemas-microsoft-com:office:office">x</my-chart>');   // URLs only on <object> and <svg>, both refused
+        $this->assertRejects('<p data-href="javascript:alert(1)">x</p>', 'url-scheme-not-allowed', 'data-href="javascript:alert(1)"');
     }
 
     public function testDetailQuotesTheAttributeAsDecoded(): void
