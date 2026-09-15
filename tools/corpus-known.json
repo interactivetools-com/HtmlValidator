@@ -1,0 +1,1132 @@
+{
+    "bleach": {
+        "cases": {
+            "9e6b17e0f453": {
+                "payload": "&#108;&#101;&<WBR>#114;&#116;&#40;&#39;&#88;&#83<WBR>;&#83;&#39;&#41>",
+                "reason": "the second half of a split RSnake vector: entities and WBR tags, nothing that runs"
+            }
+        }
+    },
+    "bluemonday": {
+        "cases": {
+            "b7dbb05180b7": {
+                "payload": "<a href=\"#\">",
+                "reason": "bluemonday's test policy drops a # link; a fragment link runs nothing"
+            },
+            "914597022b9b": {
+                "payload": "<p data-xml-prefix=\"dave\">text</p>",
+                "reason": "the test policy drops data-* attributes; they pass here by design"
+            },
+            "3f91eea7829a": {
+                "payload": "<img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAA...",
+                "reason": "data: on img src is refused with every data: URL; the plan keeps this open for HTML textboxes"
+            },
+            "110b17f4bf1b": {
+                "payload": "<IMG STYLE=\"xss:expr/*XSS*/ession(alert('XSS'))\">",
+                "reason": "expression() with a CSS comment inside the name; IE-only, and no current browser has expression()"
+            },
+            "f9a8fb9aac10": {
+                "payload": "<a></a style=\"xx:expr/**/ession(document.appendChild(document.createEl...",
+                "reason": "an end tag carries no attributes per HTML5, so the style is never read"
+            },
+            "34c496fb1543": {
+                "payload": "<div style=\"position:absolute\">",
+                "reason": "position and z-index overlays are a phishing concern, a known non-goal in v1"
+            },
+            "d5c5af04d373": {
+                "payload": "<style>b { position:absolute }</style>",
+                "reason": "position and z-index overlays are a phishing concern, a known non-goal in v1"
+            },
+            "b547fd7f8e6e": {
+                "payload": "<div style=\"z-index:25\">test</div>",
+                "reason": "position and z-index overlays are a phishing concern, a known non-goal in v1"
+            },
+            "4048e7c72f07": {
+                "payload": "<style>z-index:25</style>",
+                "reason": "position and z-index overlays are a phishing concern, a known non-goal in v1"
+            },
+            "d1f207a810fd": {
+                "payload": "<A HREF=\"h tt p://6 6.000146.0x7.147/\">XSS</A>",
+                "reason": "tabs and newlines inside http:, which browsers strip; an obfuscated http link, no script"
+            },
+            "7fa83751a9f6": {
+                "payload": "<? echo('<SCR)'; echo('IPT>alert(\"XSS\")</SCRIPT>'); ?>",
+                "reason": "server-side PHP; in HTML <? starts a bogus comment and only text and an end tag remain"
+            },
+            "535ef5e233fe": {
+                "payload": "<!--#exec cmd=\"/bin/echo '<SCR'\"--><!--#exec cmd=\"/bin/echo 'IPT SRC=h...",
+                "reason": "server-side includes inside comments; comments to a browser"
+            },
+            "21877bedf338": {
+                "payload": "<!--[if gte IE 4]><SCRIPT>alert('XSS');</SCRIPT><![endif]-->",
+                "reason": "IE conditional comments; every current browser reads the whole thing as a comment"
+            },
+            "69ff580fabd4": {
+                "payload": "<STYLE TYPE=\"text/javascript\">alert('XSS');</STYLE>",
+                "reason": "a style element with a JavaScript type ran only in Netscape 4"
+            },
+            "2c10da9f69e0": {
+                "payload": "<BR SIZE=\"&{alert('XSS')}\">",
+                "reason": "&{...} JavaScript entities, Netscape 4 only"
+            },
+            "69368d854593": {
+                "payload": "<div style=\"nonexistentStyle: something;\"></div>",
+                "reason": "an unknown CSS property; bluemonday drops it, browsers ignore it"
+            },
+            "372c6b6ce2ad": {
+                "payload": "<div style=\"color: \\72 ed;\"></div>",
+                "reason": "CSS backslash escapes are refused by design: they can spell url( or expression( past a text check"
+            },
+            "fce5233370ef": {
+                "payload": "<div style=\"color: \\0072 ed;\"></div>",
+                "reason": "CSS backslash escapes are refused by design: they can spell url( or expression( past a text check"
+            },
+            "becd8a19fe7c": {
+                "payload": "<div style=\"color: \\000072 ed;\"></div>",
+                "reason": "CSS backslash escapes are refused by design: they can spell url( or expression( past a text check"
+            },
+            "77d9bcffb027": {
+                "payload": "<div style=\"color: \\000072ed;\"></div>",
+                "reason": "CSS backslash escapes are refused by design: they can spell url( or expression( past a text check"
+            },
+            "c92fc82a4f71": {
+                "payload": "<span class=\"green\">test</span>",
+                "reason": "dropped by that test's narrow policy; nothing in it runs"
+            },
+            "fe7c31bc2272": {
+                "payload": "<span class=\"blue\">test</span>",
+                "reason": "dropped by that test's narrow policy; nothing in it runs"
+            },
+            "ee44664726cc": {
+                "payload": "<span style=\"color: green\">test</span>",
+                "reason": "dropped by that test's narrow policy; nothing in it runs"
+            },
+            "690d6667617c": {
+                "payload": "<span style=\"color: blue\">test</span>",
+                "reason": "dropped by that test's narrow policy; nothing in it runs"
+            },
+            "21b94408f1c3": {
+                "payload": "<a href=\"http://example2.org/\">test</a>",
+                "reason": "dropped by that test's narrow policy; nothing in it runs"
+            },
+            "c44bbb4dfbf2": {
+                "payload": "<a href=\"http://example4.org/\">test</a>",
+                "reason": "dropped by that test's narrow policy; nothing in it runs"
+            },
+            "b53c728878e5": {
+                "payload": "abc<a href=\"https://abc&quot;&gt;<script&gt;alert(1)<&#x2f;script/\">CL...",
+                "reason": "the script tag is inside the quoted href value, so it is part of an https URL"
+            },
+            "09393309cb30": {
+                "payload": "<a href=\"https://abc&quot;&gt;<script&gt;alert(1)<&#x2f;script/\">",
+                "reason": "the script tag is inside the quoted href value, so it is part of an https URL"
+            },
+            "3b6db1d38dc6": {
+                "payload": "Hello <span class=\"><script src=\"http://hackers.org/XSS.js\"></script>\"...",
+                "reason": "the script tag is inside the quoted class value; what follows are junk attributes on the span"
+            },
+            "4370bdb5d003": {
+                "payload": "Hello <span class=\"><script src='http://hackers.org/XSS.js'></script>\"...",
+                "reason": "the script tag is inside the quoted class value; what follows are junk attributes on the span"
+            },
+            "46871b8ff701": {
+                "payload": "<font face=\"Arial\">No link here. <a href=\"http://link.com\">link here</...",
+                "reason": "dropped by that test's narrow policy; nothing in it runs"
+            },
+            "31d3d2e03147": {
+                "payload": "<p style=\"width:100%;height:100%;background-image: url('data:image/svg...",
+                "reason": "data: inside a CSS url() is refused with every data: URL"
+            },
+            "dee134c056e7": {
+                "payload": "<IMG SRC=`javascript:alert(\"RSnake says, 'XSS'\")`>",
+                "reason": "backtick quoting; per HTML5 the unquoted value starts at the backtick and no handler attribute exists"
+            }
+        },
+        "rejects": [
+            {
+                "code": "css-not-allowed",
+                "detail": "^behavior:",
+                "open": true,
+                "reason": "scroll-behavior and overscroll-behavior are ordinary CSS; the check matches the substring behavior:"
+            }
+        ]
+    },
+    "cerberus": {
+        "rejects": [
+            {
+                "code": "css-not-allowed",
+                "detail": "^\\[style\\*=",
+                "open": true,
+                "reason": "div[style*=\"margin: 16px 0\"] is the standard Outlook.com fix in email templates; the substring-selector rule refuses every template that has it"
+            },
+            {
+                "code": "element-not-allowed",
+                "detail": "^<(webversion|unsubscribe)\\b",
+                "reason": "email service template tags; unknown elements are refused by design"
+            }
+        ]
+    },
+    "ckeditor-paste": {
+        "rejects": [
+            {
+                "code": "url-scheme-not-allowed",
+                "detail": "^src=\"(data:image/|blob:)",
+                "open": true,
+                "reason": "Word pastes carry images as data: URLs and CKEditor keeps them; data: is refused on img src, which the plan says to revisit for HTML textboxes (blob: is a browser-session URL that would never load after save)"
+            }
+        ]
+    },
+    "dompurify": {
+        "cases": {
+            "1326a479d560": {
+                "payload": "<img src=x name=createElement><img src=y id=createElement>",
+                "reason": "DOM clobbering (name= on img), a known non-goal"
+            },
+            "71b00dc91019": {
+                "payload": "<img src=x name=cookie>",
+                "reason": "DOM clobbering (name=cookie), a known non-goal"
+            },
+            "59c5a6dee99d": {
+                "payload": "123<a href='\u2028javascript:alert(1)'>I am a dolphin!</a>",
+                "reason": "U+2028 before javascript:, which no current browser strips, so the href is a relative URL"
+            },
+            "c5c3b844f366": {
+                "payload": "123<a href='\u2028javascript:alert(1)'>I am a dolphin too!</a>",
+                "reason": "U+2029 before javascript:, same as above"
+            },
+            "762f098dcaf2": {
+                "payload": "<img src=x name=getElementById>",
+                "reason": "DOM clobbering (name=getElementById), a known non-goal"
+            },
+            "fd447188bd2a": {
+                "payload": "<a href=\"#some-code-here\" id=\"location\">invisible",
+                "reason": "DOM clobbering (id=location), a known non-goal"
+            },
+            "20fa6aa82bed": {
+                "payload": "<style>*{color: red}</style>",
+                "reason": "a plain style element; DOMPurify strips style by default, we allow it through the CSS check"
+            },
+            "302acbf1d562": {
+                "payload": "</iframe></option>",
+                "reason": "stray end tags with no start tag; a browser drops them"
+            },
+            "5fa269ee253d": {
+                "payload": "<b><style><style////><img src=x onerror=alert(1)></style>",
+                "reason": "the img is inside a style element, so text to every browser; only jQuery's old tag-completion re-parse saw a tag"
+            },
+            "3661d4568c77": {
+                "payload": "<div id=\"26\">+ADw-html+AD4APA-body+AD4APA-div+AD4-top secret+ADw-/div+...",
+                "reason": "UTF-7 encoded markup; no current browser decodes UTF-7"
+            },
+            "cfd2be125efd": {
+                "payload": "<![><img src=\"]><img src=x onerror=alert(39)//\">",
+                "reason": "<![> is a bogus comment and the second img is inside the quoted src value; only old IE read CDATA here"
+            },
+            "a6c2f9c9343f": {
+                "payload": "<div id=\"43\"><?xml version=\"1.0\" standalone=\"no\"?>",
+                "reason": "an XML declaration, which is a bogus comment in HTML; IE-only"
+            },
+            "eb640be8ef70": {
+                "payload": "<div id=\"45\"><div style=\"font-family:'foo[a];color:red;';\">XXX</div>//...",
+                "reason": "a CSS string with [ in it; only old IE ended the string early"
+            },
+            "5be40428b553": {
+                "payload": "<div id=\"46\"><div style=\"font-family:foo}color=red;\">XXX</div>//[\"'`--...",
+                "reason": "} and = inside a CSS value; only old IE read them as a new declaration"
+            },
+            "74db1e9a43aa": {
+                "payload": "<div id=\"57\"><b <script>alert(57)//</script>0</script></b>//[\"'`-->]]>...",
+                "reason": "<script is an attribute name on b, not a tag; no script element exists"
+            },
+            "76fd449f5dfe": {
+                "payload": "<div id=\"60\"><div style=\"[a]color[b]:[c]red\">XXX</div>//[\"'`-->]]>]</d...",
+                "reason": "[a] inside a CSS property; only old IE ignored the brackets"
+            },
+            "d3d9f2ed7db4": {
+                "payload": "<div id=\"78\"><?xml-stylesheet type=\"text/xsl\" href=\"#\"?><img xmlns=\"x-...",
+                "reason": "xml-stylesheet processing instruction (a bogus comment) and an IE XDR schema; IE-only"
+            },
+            "d3889bf66595": {
+                "payload": "<div id=\"80\"><style>*{x:ｅｘｐｒｅｓｓｉｏｎ(alert(80))}</style>//[\"'`-->]]>]</d...",
+                "reason": "fullwidth letters spelling expression(); only IE6 folded them to ASCII"
+            },
+            "d1bb25763ff3": {
+                "payload": "<div id=\"90\"><!-- Up to Opera 10.63 --> <div style=content:url(test2.s...",
+                "reason": "SVG through CSS content: and background: url(); script ran only in Opera 12 and older"
+            },
+            "47d7632fb16c": {
+                "payload": "<div id=\"92\"><div style=\"background:url(http://foo.f/f oo/;color:red/*...",
+                "reason": "url() with a space and a comment inside; only old IE read past the space"
+            },
+            "91dc4c3190f4": {
+                "payload": "<div id=\"99\">XXX<style> *{color:gre/**/en !/**/important} /* IE 6-9 St...",
+                "reason": "CSS comment tricks that changed the parse in IE 6 to 9 only"
+            },
+            "b2753f743a5b": {
+                "payload": "<div id=\"102\"><img src=\"x` `<script>alert(102)</script>\"` `>//[\"'`-->]...",
+                "reason": "backtick quoting; per HTML5 the script tag is inside the double-quoted src value"
+            },
+            "c4629ebe5339": {
+                "payload": "<div id=\"108\"><!-- IE 5-8 standards mode --> <a href=http://foo.bar/#x...",
+                "reason": "backtick quoting in IE 5 to 9; per HTML5 the inner img is inside the quoted alt value"
+            },
+            "a4ada17dfa45": {
+                "payload": "<div id=\"111\"><div style=\"background:url(/f#[a]oo/;color:red/*/foo.jpg...",
+                "reason": "url() with #[a] inside; only old IE read it as two declarations"
+            },
+            "0d861dc19be9": {
+                "payload": "<div id=\"112\"><div style=\"font-family:foo{bar;background:url(http://fo...",
+                "reason": "url() and selector breaking with { and [; old IE and old WebKit only"
+            },
+            "e632d2faa64a": {
+                "payload": "<div id=\"133\"><!-- `<img/src=xxx onerror=alert(133)//--!>//[\"'`-->]]>]...",
+                "reason": "the img is inside a comment that ends at --!>, which is how the spec closes it"
+            },
+            "0f5786c314e5": {
+                "payload": "<div inert></div>",
+                "reason": "a div with the inert attribute; DOMPurify's test that inert is kept, not an attack"
+            },
+            "28966ad46c60": {
+                "payload": "<!-- more soon -->",
+                "reason": "a placeholder comment in DOMPurify's list, not a payload"
+            },
+            "a22097b757cf": {
+                "payload": "<b is=\"foo\">bar</b>",
+                "reason": "the is= attribute for customized built-in elements; needs a page script that defined the name, not an attack"
+            }
+        }
+    },
+    "html5lib": {
+        "cases": {
+            "e3df6625d200": {
+                "payload": "<!--[if gte IE 4]><script>alert('XSS');</script><![endif]-->",
+                "reason": "IE conditional comments; every current browser reads the whole thing as a comment"
+            },
+            "533a88555f46": {
+                "payload": "<div style=\"background-image:¥¢l('ja¦a£c¢i ¤:ale¢¤(.1027X.1053S')')\">f...",
+                "reason": "url( spelled in another charset; a UTF-8 page reads the bytes as ordinary characters"
+            },
+            "16e2cc911d14": {
+                "payload": "<img src=`javascript:alert('XSS')` />",
+                "reason": "backtick quoting; per HTML5 the unquoted value starts at the backtick and no handler attribute exists"
+            },
+            "7155e8e81ddb": {
+                "payload": "<a onclick!\\#$%&()*~+-_.,:;?@[/|\\]^`=alert(\"XSS\")>foo</a>",
+                "reason": "html5lib drops the attribute too; the pair reading missed the odd name. Refusing every on* name is by design"
+            },
+            "f76cc1bfa383": {
+                "payload": "<img src=\"&#xA0;javascript:alert('XSS');\" />",
+                "reason": "a no-break space before javascript:, which browsers do not strip, so the src is a relative URL"
+            },
+            "036222e91922": {
+                "payload": "<img src=doesntexist.jpg\"'onerror=\"alert(1) />",
+                "reason": "the unquoted src value runs to the space, so the onerror is inside it and no handler attribute exists"
+            }
+        },
+        "rejects": [
+            {
+                "code": "element-not-allowed",
+                "detail": "^<(svg|math)\\b",
+                "reason": "inline SVG and MathML are refused by design, whatever is inside them"
+            },
+            {
+                "code": "element-not-allowed",
+                "detail": "^<image\\b",
+                "open": true,
+                "reason": "browsers rewrite image to img while building the tree; the allowlist does not have it"
+            }
+        ]
+    },
+    "html5sec": {
+        "cases": {
+            "5b2093b10835": {
+                "payload": "<a style=\"-o-link:'javascript:alert(1)';-o-link-source:current\">X</a>",
+                "reason": "-o-link, an Opera-only CSS property"
+            },
+            "511f572c83ff": {
+                "payload": "<style>p[foo=bar{}*{-o-link:'javascript:alert(1)'}{}*{-o-link-source:c...",
+                "reason": "-o-link in a style element, Opera-only"
+            },
+            "71fcb2e8965a": {
+                "payload": "<div style=\"font-family:'foo[a];color:red;';\">XXX</div>",
+                "reason": "a CSS string with [ in it; only old IE ended the string early"
+            },
+            "506a2dc1464c": {
+                "payload": "<div style=\"font-family:foo}color=red;\">XXX</div>",
+                "reason": "} and = inside a CSS value; only old IE read them as a new declaration"
+            },
+            "bf586ead2518": {
+                "payload": "<b <script>alert(1)//</script>0</script></b>",
+                "reason": "<script is an attribute name on b, not a tag; no script element exists"
+            },
+            "faaee2a37607": {
+                "payload": "<div style=\"[a]color[b]:[c]red\">XXX</div>",
+                "reason": "[a] inside a CSS property; only old IE ignored the brackets"
+            },
+            "fd221a686275": {
+                "payload": "<// style=x:expression\\28write(1)\\29>",
+                "reason": "<// starts a bogus comment, so nothing here is a tag; and expression() is IE-only"
+            },
+            "32171c59665a": {
+                "payload": "<?xml-stylesheet type=\"text/xsl\" href=\"#\"?><img xmlns=\"x-schema:test.x...",
+                "reason": "xml-stylesheet processing instruction (a bogus comment) and an IE XDR schema; IE-only"
+            },
+            "039a297d6f66": {
+                "payload": "<style>*{x:ｅｘｐｒｅｓｓｉｏｎ(write(1))}</style>",
+                "reason": "fullwidth letters spelling expression(); only IE6 folded them to ASCII"
+            },
+            "f1cef6e2407c": {
+                "payload": "<?xml-stylesheet type=\"text/css\" href=\"data:,*%7bx:expression(write(2)...",
+                "reason": "xml-stylesheet processing instruction, a bogus comment in HTML; IE-only"
+            },
+            "589f1ba4eab2": {
+                "payload": "<!-- Up to Opera 10.63 --> <div style=content:url(test2.svg)></div> <!...",
+                "reason": "SVG through CSS content: and background: url(); script ran only in Opera 12 and older"
+            },
+            "c379abfcec0b": {
+                "payload": "<div style=\"background:url(http://foo.f/f oo/;color:red/*/foo.jpg);\">X...",
+                "reason": "url() with a space and a comment inside; only old IE read past the space"
+            },
+            "ad8b45488e6c": {
+                "payload": "<a href=\"[a]java[b]script[c]:alert(1)\">XXX</a>",
+                "reason": "the scheme as written is [a]java[b]script[c], which nothing resolves; the case is about characters old IE skipped"
+            },
+            "d8ee2690e183": {
+                "payload": "<img src=\"x` `<script>alert(1)</script>\"` `>",
+                "reason": "backtick quoting; per HTML5 the script tag is inside the double-quoted src value"
+            },
+            "d745e5378a5e": {
+                "payload": "<!-- IE 5-8 standards mode --> <a href=http://foo.bar/#x=`y></a><img a...",
+                "reason": "backtick quoting in IE 5 to 9; per HTML5 the inner img is inside the quoted alt value"
+            },
+            "9c9c18f0e6f0": {
+                "payload": "<div style=\"background:url(/f#[a]oo/;color:red/*/foo.jpg);\">X</div>",
+                "reason": "url() with #[a] inside; a WebKit CSS parser bug fixed years ago"
+            },
+            "8468d795cdb3": {
+                "payload": "<div style=\"font-family:foo{bar;background:url(http://foo.f/oo};color:...",
+                "reason": "url() with { inside; only old IE read it as two declarations"
+            },
+            "2251aebd2249": {
+                "payload": "<div id=\"x\">XXX</div> <style> #x{font-family:foo[bar;color:green;} #y]...",
+                "reason": "[ and ] breaking a selector; only old IE, and nothing runs either way"
+            },
+            "f3dd844afef6": {
+                "payload": "<!--[if]><script>alert(1)</script --> <!--[if<img src=x onerror=alert(...",
+                "reason": "IE conditional comments; every other browser and IE 10 and later read the whole thing as a comment"
+            },
+            "0c56f8213730": {
+                "payload": "<!-- `<img/src=xx:xx onerror=alert(1)//--!>",
+                "reason": "the img is inside a comment that ends at --!>, which is how the spec closes it"
+            }
+        }
+    },
+    "mailchimp": {
+        "rejects": [
+            {
+                "code": "css-not-allowed",
+                "detail": "^\\\\$",
+                "open": true,
+                "reason": "backslashes inside CSS comments (/* /\\/\\/ */ banners); the CSS check reads comments too"
+            }
+        ]
+    },
+    "mdn": {
+        "rejects": [
+            {
+                "code": "iframe-host",
+                "detail": "^about:blank$",
+                "reason": "MDN live samples are iframes to about:blank; embeds from unknown hosts are refused by design"
+            }
+        ]
+    },
+    "owasp": {
+        "cases": {
+            "e425fbc850b8": {
+                "payload": "<IMG SRC= onmouseover=\"alert('xxs')\">",
+                "reason": "the unquoted src value is the whole onmouseover=\"...\" string, so no handler attribute exists"
+            },
+            "7b6b8fe7a5e6": {
+                "payload": "a href=\"/Share?content_type=1&title=<%=Encode.forHtmlAttribute(untrust...",
+                "reason": "a JSP template line with no < before the a, so it is text plus an end tag"
+            },
+            "73cfb23cd8ca": {
+                "payload": "<a href=\"/share?content_type=1&title=This is a regular title&amp;conte...",
+                "reason": "a relative link with a query string; the sheet's example of a server-side injection point, not HTML that runs"
+            },
+            "b84593c857a3": {
+                "payload": "<STYLE type=\"text/css\">BODY{background:url(\"<javascript:alert>('XSS')\"...",
+                "reason": "the url() string starts with <, so it is a relative path, not a scheme"
+            },
+            "c106b549325e": {
+                "payload": "<?xml:namespace prefix=\"t\" ns=\"urn:schemas-microsoft-com:time\">",
+                "reason": "a processing instruction, which is a bogus comment in HTML; the IE HTML+TIME feature behind it is gone"
+            },
+            "fcd28420dea9": {
+                "payload": "<?import namespace=\"t\" implementation=\"#default#time2\">",
+                "reason": "a processing instruction, which is a bogus comment in HTML; the IE HTML+TIME feature behind it is gone"
+            },
+            "95176fbfbbb9": {
+                "payload": "</BODY></HTML>",
+                "reason": "end tags only; a browser drops them"
+            },
+            "a4c7a1f02ad5": {
+                "payload": "tt  p://6 6.000146.0x7.147/\">XSS</A>",
+                "reason": "a line cut from a multi-line vector; on its own it is text and end tags"
+            }
+        }
+    },
+    "owasp-java": {
+        "cases": {
+            "64f6561cb43f": {
+                "payload": "<b title=\"a<b && c>b\">bar</b>",
+                "reason": "the < is inside a quoted title value"
+            },
+            "1d567a6e5562": {
+                "payload": "</meta http-equiv=\"refesh\" content=\"1;URL=http://evilgadget.com\">",
+                "reason": "an end tag carries no attributes per HTML5, so the style is never read"
+            },
+            "f2ccc3693232": {
+                "payload": "<p>Hello world</b style=\"width:expression(alert(1))\">",
+                "reason": "an end tag carries no attributes per HTML5, so the style is never read"
+            },
+            "2af0c27ce925": {
+                "payload": "<span style=\"color:rgb(72, 72, 72); font-family:helveticaneue\"> <span>...",
+                "reason": "the sanitizer rewrote the styles; nothing in them runs"
+            },
+            "78e8bbf928a2": {
+                "payload": "<style><img src=x onerror=alert(1)></style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "d97a2775b3aa": {
+                "payload": "<style><<<b>img src=x onerror=alert(1)></style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "bc84b1580343": {
+                "payload": "<style>a{}<b>c{}</style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "9a1f1e1c29ee": {
+                "payload": "<style>a{}<b>x<b>y</b>z</b>c{}</style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "054564534c7e": {
+                "payload": "<style>a{}-<b>->b{}</style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "92621293b177": {
+                "payload": "<style>a{}--<b>>b{}</style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "ad74312e14dd": {
+                "payload": "<style>a<!<b>--x</style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "147efb0780db": {
+                "payload": "<style>a<!-<b>-x</style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "45d2aba14edc": {
+                "payload": "<style>a{}-<%%><b>->b{}</style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "77d45f2a1c09": {
+                "payload": "<style>a{}-<b><%%>->b{}</style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "04726b0aa428": {
+                "payload": "<style>a{}--><b>b{}</style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "7b7996d4dc25": {
+                "payload": "<style><!-- a<b> --> b </b></style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "c14435001ae7": {
+                "payload": "<style>a{}<b>x - y</b>c{}</style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "04997f22073c": {
+                "payload": "<style><b<svg> onmouseover=alert(1)>x</style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "87c738e1e0b9": {
+                "payload": "<style><b<b<svg> onmouseover=alert(1)>x</style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "f608a6a483c7": {
+                "payload": "<style></<b>noscript></style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "6dcbc1b6ac40": {
+                "payload": "<style>a{}<b<svg></style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "72a5d2faa5fe": {
+                "payload": "<style>a{}<3<svg>{}</style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "c3ae6e2ed3e8": {
+                "payload": "<style>a{}< b<svg>{}</style>",
+                "reason": "inside a style element everything up to </style> is text to the browser"
+            },
+            "49c341223119": {
+                "payload": "<p x></\"<p>y</p>",
+                "reason": "</\" starts a bogus comment that ends at the next >"
+            },
+            "110b17f4bf1b": {
+                "payload": "<IMG STYLE=\"xss:expr/*XSS*/ession(alert('XSS'))\">",
+                "reason": "expression() with a CSS comment inside the name; IE-only, and no current browser has expression()"
+            },
+            "199da04b31ce": {
+                "payload": "<a></a style=\"\"xx:expr/**/ession(document.appendChild(document.createE...",
+                "reason": "an end tag carries no attributes per HTML5, so the style is never read"
+            },
+            "34c496fb1543": {
+                "payload": "<div style=\"position:absolute\">",
+                "reason": "position and z-index overlays are a phishing concern, a known non-goal in v1"
+            },
+            "d5c5af04d373": {
+                "payload": "<style>b { position:absolute }</style>",
+                "reason": "position and z-index overlays are a phishing concern, a known non-goal in v1"
+            },
+            "b547fd7f8e6e": {
+                "payload": "<div style=\"z-index:25\">test</div>",
+                "reason": "position and z-index overlays are a phishing concern, a known non-goal in v1"
+            },
+            "4048e7c72f07": {
+                "payload": "<style>z-index:25</style>",
+                "reason": "position and z-index overlays are a phishing concern, a known non-goal in v1"
+            },
+            "4479e1c0417d": {
+                "payload": "<b><i>Some Text</b></i>",
+                "reason": "mis-nested end tags; the browser fixes the tree, nothing runs"
+            },
+            "1ad76d10f6ac": {
+                "payload": "<a href='http://subdomain.domain/(S(ke0lpq54bw0fvp53a10e1a45))/MyPage....",
+                "reason": "an ordinary http link with parentheses in the path"
+            },
+            "6ceb5d1000ca": {
+                "payload": "a href=\"blah\">link</a>",
+                "reason": "no < before the a, so text plus an end tag"
+            },
+            "ca928bc9c9a8": {
+                "payload": "<a href=\"blah\" rel=\"nofollow\" rel=\"nofollow\">link</a>",
+                "reason": "a repeated attribute; the first wins"
+            },
+            "22623db5b93e": {
+                "payload": "<script>if (a < b) x();</script>",
+                "reason": "that test's policy allows script elements; refused here with no switch"
+            },
+            "38f0a51a6caf": {
+                "payload": "<script>var s = 'a<b'; var t = 'c>d';</script>",
+                "reason": "that test's policy allows script elements; refused here with no switch"
+            }
+        },
+        "rejects": [
+            {
+                "code": "element-not-allowed",
+                "detail": "^<(svg|math|path)\\b",
+                "reason": "inline SVG and MathML are refused by design, whatever is inside them"
+            },
+            {
+                "code": "element-not-allowed",
+                "detail": "^<input\\b",
+                "reason": "form elements are refused while allowForms is off"
+            },
+            {
+                "code": "element-not-allowed",
+                "detail": "^<noscript\\b",
+                "reason": "noscript is refused by design: its content is raw text only when scripting is on"
+            },
+            {
+                "code": "element-not-allowed",
+                "detail": "^<comment\\b",
+                "reason": "an IE-only element, unknown to the allowlist"
+            },
+            {
+                "code": "control-character",
+                "detail": ".",
+                "reason": "control characters are refused up front by design"
+            },
+            {
+                "code": "unclosed-markup",
+                "detail": ".",
+                "reason": "markup that ends inside a tag is refused by design"
+            }
+        ]
+    },
+    "payloads": {
+        "cases": {
+            "a630d181f10b": {
+                "payload": "</name>",
+                "reason": "end tags only; a browser drops them"
+            },
+            "124207d84bdc": {
+                "payload": "</body>",
+                "reason": "end tags only; a browser drops them"
+            },
+            "fdfe0993e6e9": {
+                "payload": "</html>",
+                "reason": "end tags only; a browser drops them"
+            },
+            "01cf38a50469": {
+                "payload": "</svg>",
+                "reason": "end tags only; a browser drops them"
+            },
+            "6003b145bd42": {
+                "payload": "</svg>",
+                "reason": "end tags only; a browser drops them"
+            },
+            "a9bc5143b485": {
+                "payload": "</script>",
+                "reason": "end tags only; a browser drops them"
+            },
+            "6c9656210a02": {
+                "payload": "</script>",
+                "reason": "end tags only; a browser drops them"
+            },
+            "1101123e2e34": {
+                "payload": "</HTML>",
+                "reason": "end tags only; a browser drops them"
+            },
+            "95176fbfbbb9": {
+                "payload": "</BODY></HTML>",
+                "reason": "end tags only; a browser drops them"
+            },
+            "8c6463a67273": {
+                "payload": "<?php echo 'foo=\"text '.$_GET['test'].'\";';`?>",
+                "reason": "server-side PHP; in HTML <? starts a bogus comment and only text and an end tag remain"
+            },
+            "576895e4bd0a": {
+                "payload": "'te' * alert('*') * 'xt'; 'te' / alert('/') / 'xt'; 'te' % alert('%') ...",
+                "reason": "JavaScript with < and > operators; text in HTML"
+            },
+            "e8b829bd745d": {
+                "payload": "<ſvg onload=... >",
+                "reason": "ſ is not an ASCII letter, so < is text and there is no tag; the trick needs a server-side case conversion first"
+            },
+            "3b13e8e9dc5e": {
+                "payload": "<ıframe id=x onload=>",
+                "reason": "ı is not an ASCII letter, so < is text and there is no tag; the trick needs a server-side case conversion first"
+            },
+            "2ab482737dde": {
+                "payload": "< = %C0%BC = %E0%80%BC = %F0%80%80%BC > = %C0%BE = %E0%80%BE = %F0%80%...",
+                "reason": "a table of encodings; text"
+            },
+            "2074017e7bfe": {
+                "payload": "%00%3C%00s%00v%00g%00/%00o%00n%00l%00o%00a%00d%00=%00a%00l%00e%00r%00t...",
+                "reason": "percent-encoded UTF-16; text"
+            },
+            "2fdd0a5f3e63": {
+                "payload": "<style></style <img src=\"about:blank\" onerror=javascript:alert(1)//></...",
+                "reason": "</style followed by whitespace is the style end tag with junk attributes, so the img is never a tag"
+            },
+            "9cc7dfa24f7c": {
+                "payload": "<style></style <img src=\"about:blank\" onerror=javascript:alert(1)//></...",
+                "reason": "</style followed by whitespace is the style end tag with junk attributes, so the img is never a tag"
+            },
+            "8bb4b0f73c51": {
+                "payload": "<style></style <img src=\"about:blank\" onerror=javascript:alert(1)//></...",
+                "reason": "</style followed by whitespace is the style end tag with junk attributes, so the img is never a tag"
+            },
+            "dbd9de70b382": {
+                "payload": "<style></style <img src=\"about:blank\" onerror=javascript:alert(1)//></...",
+                "reason": "</style followed by whitespace is the style end tag with junk attributes, so the img is never a tag"
+            },
+            "80e24d813de9": {
+                "payload": "<a href=\" javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "9c8c7045e6a9": {
+                "payload": "<a href=\"᠎javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "dff908dc5eb0": {
+                "payload": "<a href=\" javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "6ddac8fa7ad8": {
+                "payload": "<a href=\" javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "6cdde1cc6ab6": {
+                "payload": "<a href=\" javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "9d3d17e07c7c": {
+                "payload": "<a href=\" javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "17162f39f4d1": {
+                "payload": "<a href=\" javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "a2495ac5b434": {
+                "payload": "<a href=\" javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "a846c22f59df": {
+                "payload": "<a href=\" javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "ef03b89fa223": {
+                "payload": "<a href=\" javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "0a39bd07565c": {
+                "payload": "<a href=\" javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "b62c48756c92": {
+                "payload": "<a href=\" javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "129bc8d4ae64": {
+                "payload": "<a href=\" javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "ecb9fba24a64": {
+                "payload": "<a href=\" javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "5ccc3d51677f": {
+                "payload": "<a href=\"　javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "899e4bfd3d8a": {
+                "payload": "<a href=\"\u2028javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "c5296a4f4c8d": {
+                "payload": "<a href=\"\u2029javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "54324e43e9f7": {
+                "payload": "<a href=\" javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "ac394186129e": {
+                "payload": "<a href=\" javascript:javascript:alert(1)\" id=\"fuzzelement1\">test</a>",
+                "reason": "a Unicode space before javascript:, which browsers do not strip, so the href is a relative URL"
+            },
+            "cfac64564373": {
+                "payload": "<![><img src=\"]><img src=x onerror=javascript:alert(1)//\">",
+                "reason": "<![> is a bogus comment and the second img is inside the quoted src value; only old IE read CDATA here"
+            },
+            "a9b6df398ecb": {
+                "payload": "<b <script>alert(1)</script>0",
+                "reason": "<script is an attribute name on b, not a tag; no script element exists"
+            },
+            "988021570afc": {
+                "payload": "<img src=\"x` `<script>javascript:alert(1)</script>\"` `>",
+                "reason": "backtick quoting; per HTML5 the script tag is inside the double-quoted src value"
+            },
+            "02531d0f23d2": {
+                "payload": "<a href=http://foo.bar/#x=`y></a><img alt=\"`><img src=x:x onerror=java...",
+                "reason": "backtick quoting in IE 5 to 9; per HTML5 the inner img is inside the quoted alt value"
+            },
+            "30a3bea3be27": {
+                "payload": "<!--[if]><script>javascript:alert(1)</script -->",
+                "reason": "IE conditional comments; every current browser reads the whole thing as a comment"
+            },
+            "b06cbed88504": {
+                "payload": "<!--[if<img src=x onerror=javascript:alert(1)//]> -->",
+                "reason": "IE conditional comments; every current browser reads the whole thing as a comment"
+            },
+            "6179f572868e": {
+                "payload": "<!--[if gte IE 4]><SCRIPT>javascript:alert(1);</SCRIPT><![endif]-->",
+                "reason": "IE conditional comments; every current browser reads the whole thing as a comment"
+            },
+            "f685dfd9df4a": {
+                "payload": "<a style=\"-o-link:'javascript:javascript:alert(1)';-o-link-source:curr...",
+                "reason": "-o-link, an Opera-only CSS property"
+            },
+            "83d467a1febe": {
+                "payload": "<style>p[foo=bar{}*{-o-link:'javascript:javascript:alert(1)'}{}*{-o-li...",
+                "reason": "-o-link, an Opera-only CSS property"
+            },
+            "67b619fccdcd": {
+                "payload": "<div style=\"font-family:'foo&#10;;color:red;';\">XXX",
+                "reason": "a CSS string with a newline in it is a bad string; harmless"
+            },
+            "db89c0e923b0": {
+                "payload": "<div style=\"font-family:foo}color=red;\">XXX",
+                "reason": "} and = inside a CSS value; only old IE read them as a new declaration"
+            },
+            "578150db38d6": {
+                "payload": "<// style=x:expression\\28javascript:alert(1)\\29>",
+                "reason": "<// starts a bogus comment, so nothing here is a tag; and expression() is IE-only"
+            },
+            "0559a3739d5b": {
+                "payload": "<style>*{x:ｅｘｐｒｅｓｓｉｏｎ(javascript:alert(1))}</style>",
+                "reason": "fullwidth letters spelling expression(); only IE6 folded them to ASCII"
+            },
+            "cf268e6295a4": {
+                "payload": "<div style=content:url(%(svg)s)></div>",
+                "reason": "a Python placeholder in a relative url(); no scheme"
+            },
+            "19b0a51cb113": {
+                "payload": "<div style=\"background:url(/f#&#127;oo/;color:red/*/foo.jpg);\">X",
+                "reason": "url() and selector breaking tricks for old IE and old WebKit"
+            },
+            "a7ace63ace2b": {
+                "payload": "<div style=\"font-family:foo{bar;background:url(http://foo.f/oo};color:...",
+                "reason": "url() and selector breaking tricks for old IE and old WebKit"
+            },
+            "4957239697dc": {
+                "payload": "<div id=\"x\">XXX</div> <style> #x{font-family:foo[bar;color:green;} #y]...",
+                "reason": "url() and selector breaking tricks for old IE and old WebKit"
+            },
+            "7481e56041e0": {
+                "payload": "<IMG SRC=`javascript:javascript:alert(1)`>",
+                "reason": "backtick quoting; per HTML5 the unquoted value starts at the backtick and no handler attribute exists"
+            },
+            "dee134c056e7": {
+                "payload": "<IMG SRC=`javascript:alert(\"RSnake says, 'XSS'\")`>",
+                "reason": "backtick quoting; per HTML5 the unquoted value starts at the backtick and no handler attribute exists"
+            },
+            "d7b9c18507b8": {
+                "payload": "<BR SIZE=\"&{javascript:alert(1)}\">",
+                "reason": "&{...} JavaScript entities, Netscape 4 only"
+            },
+            "2c10da9f69e0": {
+                "payload": "<BR SIZE=\"&{alert('XSS')}\">",
+                "reason": "&{...} JavaScript entities, Netscape 4 only"
+            },
+            "5afd7337ba7c": {
+                "payload": "<IMG SRC=&{javascript:alert(1);};>",
+                "reason": "&{...} JavaScript entities, Netscape 4 only"
+            },
+            "ec864581a9c5": {
+                "payload": "<IMG STYLE=\"xss:expr/*XSS*/ession(javascript:alert(1))\">",
+                "reason": "expression() with a CSS comment inside the name; IE-only, and no current browser has expression()"
+            },
+            "110b17f4bf1b": {
+                "payload": "<IMG STYLE=\"xss:expr/*XSS*/ession(alert('XSS'))\">",
+                "reason": "expression() with a CSS comment inside the name; IE-only, and no current browser has expression()"
+            },
+            "f288276d49de": {
+                "payload": "<STYLE TYPE=\"text/javascript\">javascript:alert(1);</STYLE>",
+                "reason": "a style element with a JavaScript type ran only in Netscape 4"
+            },
+            "69ff580fabd4": {
+                "payload": "<STYLE TYPE=\"text/javascript\">alert('XSS');</STYLE>",
+                "reason": "a style element with a JavaScript type ran only in Netscape 4"
+            },
+            "5da9badf805b": {
+                "payload": "<? echo('<SCR)';echo('IPT>alert(\"XSS\")</SCRIPT>'); ?>",
+                "reason": "server-side PHP; in HTML <? starts a bogus comment and only text and an end tag remain"
+            },
+            "535ef5e233fe": {
+                "payload": "<!--#exec cmd=\"/bin/echo '<SCR'\"--><!--#exec cmd=\"/bin/echo 'IPT SRC=h...",
+                "reason": "server-side includes inside comments; comments to a browser"
+            },
+            "df62df588553": {
+                "payload": "<IMG SRC=\"http://www.thesiteyouareon.com/somecommand.php?somevariables...",
+                "reason": "an external image; a request to another host is tracking, a known non-goal"
+            },
+            "4bc9bb10ce38": {
+                "payload": "<A HREF=\"http://66.102.7.147/\">XSS</A>",
+                "reason": "an obfuscated http link (IP forms, percent-encoding); a phishing link, no script"
+            },
+            "f618057611b3": {
+                "payload": "<A HREF=\"http://%77%77%77%2E%67%6F%6F%67%6C%65%2E%63%6F%6D\">XSS</A>",
+                "reason": "an obfuscated http link (IP forms, percent-encoding); a phishing link, no script"
+            },
+            "1ec5a42b7e77": {
+                "payload": "<A HREF=\"http://1113982867/\">XSS</A>",
+                "reason": "an obfuscated http link (IP forms, percent-encoding); a phishing link, no script"
+            },
+            "5b58f381b666": {
+                "payload": "<A HREF=\"http://0x42.0x0000066.0x7.0x93/\">XSS</A>",
+                "reason": "an obfuscated http link (IP forms, percent-encoding); a phishing link, no script"
+            },
+            "ab4e3bfa784d": {
+                "payload": "<A HREF=\"http://0102.0146.0007.00000223/\">XSS</A>",
+                "reason": "an obfuscated http link (IP forms, percent-encoding); a phishing link, no script"
+            },
+            "c87f7218b671": {
+                "payload": "<A HREF=\"htt p://6 6.000146.0x7.147/\">XSS</A>",
+                "reason": "an obfuscated http link (IP forms, percent-encoding); a phishing link, no script"
+            },
+            "2bf36f0d3abe": {
+                "payload": "<A HREF=\"http://www.gohttp://www.google.com/ogle.com/\">XSS</A>",
+                "reason": "an obfuscated http link (IP forms, percent-encoding); a phishing link, no script"
+            },
+            "e425fbc850b8": {
+                "payload": "<IMG SRC= onmouseover=\"alert('xxs')\">",
+                "reason": "the unquoted src value is the whole onmouseover=\"...\" string, so no handler attribute exists"
+            },
+            "9c11a1e78344": {
+                "payload": "perl -e 'print \"<IMG SRC=java\\0script:alert(\\\"XSS\\\")>\";' > out",
+                "reason": "a shell command line; the img inside has the scheme java\\0script, not javascript"
+            },
+            "72d96aab387e": {
+                "payload": "<%<!--'%><script>alert(1);</script -->",
+                "reason": "<% is text and the script tag is inside a comment"
+            },
+            "518dc27a98c9": {
+                "payload": "<img src=`xx:xx`onerror=alert(1)>",
+                "reason": "the unquoted src value runs to the >, so onerror is inside it"
+            },
+            "d826c9db1577": {
+                "payload": "<%78 onxxx=1",
+                "reason": "<% is text, not a tag"
+            },
+            "0b9686f5a93c": {
+                "payload": "<img/id=\"alert&lpar;&#x27;XSS&#x27;&#x29;\\\"/alt=\\\"/\\\"src=\\\"/\\\"onerror=...",
+                "reason": "the backslashes are literal; per HTML5 the onerror ends up inside the alt value"
+            },
+            "9233da45de7b": {
+                "payload": "<%73%63%72%69%70%74> %64 = %64%6f%63%75%6d%65%6e%74%2e%63%72%65%61%74%...",
+                "reason": "<% is text; percent-encoding is not decoded in HTML"
+            },
+            "f623dbb368ae": {
+                "payload": "<%00script>alert(‘XSS’)<%00/script>",
+                "reason": "<% is text, not a tag"
+            },
+            "07bb230204b3": {
+                "payload": "<%script>alert(‘XSS’)<%/script>",
+                "reason": "<% is text, not a tag"
+            },
+            "71005d264c68": {
+                "payload": "<%tag style=”xss:expression(alert(‘XSS’))”>",
+                "reason": "<% is text, not a tag"
+            },
+            "d4952cdc225c": {
+                "payload": "<%tag onmouseover=\"(alert('XSS'))\"> is invalid. <%br />",
+                "reason": "<% is text, not a tag"
+            },
+            "5fd3c7e4ccc0": {
+                "payload": "</b style=\"expr/**/ession(alert('vulnerable'))\">",
+                "reason": "an end tag carries no attributes per HTML5, so the style is never read"
+            },
+            "1b88f1cf381d": {
+                "payload": "alert(a.source)</SCRIPT>",
+                "reason": "a line cut from a multi-line vector; on its own it is text and end tags"
+            },
+            "6f98724bcef4": {
+                "payload": "<![endif]-->",
+                "reason": "<![endif] is a bogus comment"
+            },
+            "8e2e76c13b65": {
+                "payload": "<?import namespace=\"xss\" implementation=\"http://ha.ckers.org/xss.htc\">",
+                "reason": "a processing instruction, which is a bogus comment in HTML; the IE HTML+TIME feature behind it is gone"
+            },
+            "213c72b4b5a7": {
+                "payload": "<?xml:namespace prefix=\"t\" ns=\"urn:schemas-microsoft-com:time\">",
+                "reason": "a processing instruction, which is a bogus comment in HTML; the IE HTML+TIME feature behind it is gone"
+            },
+            "ae5b0b00e4c2": {
+                "payload": "<?import namespace=\"t\" implementation=\"#default#time2\">",
+                "reason": "a processing instruction, which is a bogus comment in HTML; the IE HTML+TIME feature behind it is gone"
+            },
+            "01937121d833": {
+                "payload": "</C></X></xml><SPAN DATASRC=#I DATAFLD=C DATAFORMATAS=HTML></SPAN>",
+                "reason": "IE data binding (DATASRC, DATAFORMATAS=HTML); IE-only"
+            },
+            "1ef7d31c66d0": {
+                "payload": "<SPAN DATASRC=\"#xss\" DATAFLD=\"B\" DATAFORMATAS=\"HTML\"></SPAN>",
+                "reason": "IE data binding (DATASRC, DATAFORMATAS=HTML); IE-only"
+            },
+            "d2115ab44789": {
+                "payload": "<SPAN DATASRC=#I DATAFLD=C DATAFORMATAS=HTML></SPAN>",
+                "reason": "IE data binding (DATASRC, DATAFORMATAS=HTML); IE-only"
+            },
+            "1845c6c25d58": {
+                "payload": "echo('IPT>alert(\"XSS\")</SCRIPT>'); ?>",
+                "reason": "a line cut from a multi-line vector; on its own it is text and end tags"
+            },
+            "dabd3aff769f": {
+                "payload": "<",
+                "reason": "a lone <, text"
+            },
+            "d532580eb051": {
+                "payload": "<h1>INJECTX</h1>",
+                "reason": "a probe marker, not an attack"
+            }
+        }
+    },
+    "portswigger": {
+        "cases": {
+            "90249a3a2edb": {
+                "reason": "a link to the lab page that reflects its query; the script tag is inside the quoted href"
+            },
+            "80d77a742184": {
+                "reason": "download= on a link to #; saves the current page under a name, no script"
+            },
+            "9b3832298201": {
+                "reason": "an external image with referrerpolicy; tracking is a known non-goal"
+            },
+            "1a804428c0b3": {
+                "reason": "target= sets window.name and the href points at the lab page that evals it; the script runs there, not from this HTML"
+            },
+            "ff4648f67cf4": {
+                "reason": "same as 0323 through map and area"
+            },
+            "70cc83445a64": {
+                "reason": "percent-encoded overlong UTF-8; as HTML this is text and a stray end tag, and no current browser decodes overlong sequences"
+            },
+            "68fdf22dbaf9": {
+                "reason": "&{...} JavaScript entities, Netscape 4 only"
+            }
+        }
+    },
+    "tinymce": {
+        "rejects": [
+            {
+                "code": "element-not-allowed",
+                "detail": "^<(svg|math)\\b",
+                "reason": "inline SVG and MathML are refused by design, whatever is inside them"
+            }
+        ]
+    },
+    "wikipedia": {
+        "rejects": [
+            {
+                "code": "css-not-allowed",
+                "detail": "^(\\\\|\\[src\\*=|\\[style\\*=)",
+                "open": true,
+                "reason": "TemplateStyles CSS with content:\"\\a0\" escapes in strings and substring attribute selectors; the same questions as mailchimp and cerberus"
+            },
+            {
+                "code": "element-not-allowed",
+                "detail": "^<(link|meta)\\b",
+                "reason": "page-level elements MediaWiki puts in article HTML; refused by design"
+            },
+            {
+                "code": "url-scheme-not-allowed",
+                "detail": "^href=\"news:",
+                "reason": "news: is not on the scheme allowlist; rare enough to stay refused"
+            }
+        ]
+    },
+    "wordpress": {
+        "cases": {
+            "f354a379b064": {
+                "payload": "<!-- wp:media-text {\"mediaId\":1613,\"mediaType\":\"image\"} --> <div class=\"wp-block-media-text...",
+                "reason": "a typo in the sample (src=\"ttps://...\"), a problem in the sample and not in the rule"
+            }
+        }
+    },
+    "wpt": {
+        "cases": {
+            "a5668ce30cc0": {
+                "payload": "<p data-x=\"1\" data-y=\"2\" data-z=\"3\">",
+                "reason": "that case's config removes data attributes; nothing in it runs"
+            },
+            "060609f02907": {
+                "payload": "<a nothref=\"javascript:alert(1)\"></a>",
+                "reason": "javascript: is refused in every attribute by design; the Sanitizer API only checks URL attributes"
+            }
+        },
+        "rejects": [
+            {
+                "code": "element-not-allowed",
+                "detail": "^<(svg|math)\\b",
+                "reason": "inline SVG and MathML are refused by design, whatever is inside them"
+            }
+        ]
+    }
+}

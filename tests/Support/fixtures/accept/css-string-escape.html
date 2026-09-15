@@ -1,0 +1,16 @@
+<style>
+  .hlist li::after { content: "\a0 \b7 "; }
+  .breadcrumb li + li::before { content: "\203A"; padding: 0 8px; }
+  .quote::before { content: "\201C"; }
+  .quote::after { content: "\201D"; }
+  .cjk { font-family: "\@Yu Mincho", "Yu Mincho", serif; }
+  .price::after { content: " \20AC"; }
+</style>
+<ul class="hlist">
+  <li>Home</li>
+  <li>Products</li>
+  <li>Support</li>
+</ul>
+<p class="quote">Escapes inside a quoted string only produce characters. They never make a property name or a function.</p>
+<p class="cjk" style="font-family: '\@Yu Mincho', 'Yu Mincho', serif;">縦書き</p>
+<p><span class="price">19</span></p>
