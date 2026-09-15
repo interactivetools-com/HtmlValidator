@@ -7,13 +7,14 @@ use Itools\HtmlValidator\Violation;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Keeps the error codes and the reject fixtures in step: every code in
- * Violation::TEMPLATES has a fixture named after it, and every fixture names a
- * code that still exists.
+ * Keeps the error codes, the reject fixtures and docs/errors.md in step: every code in
+ * Violation::TEMPLATES has a fixture named after it, every fixture names a code that still
+ * exists, and docs/errors.md has a table row for every code with its template.
  */
 final class ErrorCodesTest extends TestCase
 {
     private const REJECT_DIR = __DIR__ . '/../Support/fixtures/reject';
+    private const ERRORS_DOC = __DIR__ . '/../../docs/errors.md';
 
     public function testEveryCodeHasARejectFixture(): void
     {
@@ -30,5 +31,22 @@ final class ErrorCodesTest extends TestCase
             $code = preg_replace('/-\d+\.html$/', '', $name);
             $this->assertArrayHasKey($code, Violation::TEMPLATES, "$name names a code that does not exist");
         }
+    }
+
+    public function testEveryCodeHasARowInErrorsDoc(): void
+    {
+        $page = file_get_contents(self::ERRORS_DOC);
+        foreach (Violation::TEMPLATES as $code => $template) {
+            $this->assertMatchesRegularExpression("/^\\| `$code` +\\| `(.+?)` +\\| /m", $page, "docs/errors.md has no table row for $code");
+            preg_match("/^\\| `$code` +\\| `(.+?)` +\\| /m", $page, $row);
+            $this->assertSame($template, $row[1], "the docs/errors.md message for $code does not match Violation::TEMPLATES");
+        }
+    }
+
+    public function testErrorsDocRowsAreInTemplateOrder(): void
+    {
+        $page = file_get_contents(self::ERRORS_DOC);
+        preg_match_all('/^\\| `([a-z0-9-]+)` +\\| `/m', $page, $rows);
+        $this->assertSame(array_keys(Violation::TEMPLATES), $rows[1], 'docs/errors.md rows are not in Violation::TEMPLATES order');
     }
 }
