@@ -123,6 +123,9 @@ and OWASP payload lists.
 - **A "clean it for me" button.** There is no output to hand back. Run a sanitizer for that
   and check what it returns.
 
+A check costs less than receiving the form post did; the measurements are in
+[benchmarks/results.md](benchmarks/results.md).
+
 ## Documentation
 
 Full docs ([browse on GitHub](https://github.com/interactivetools-com/HtmlValidator)):
