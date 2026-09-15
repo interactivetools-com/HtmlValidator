@@ -24,6 +24,8 @@ namespace Itools\HtmlValidator;
  * reading: the page up to the next quote becomes the attribute value, or the page up to
  * </style> becomes CSS. start is where the unfinished markup opened and end is the end of
  * the input, so the source is the whole unfinished piece.
+ *
+ * @internal The validator's own parser, not part of the public API; it can change between releases.
  */
 final class Token
 {

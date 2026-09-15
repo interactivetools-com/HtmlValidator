@@ -26,6 +26,8 @@ use const PREG_OFFSET_CAPTURE;
  * &lt), a legacy name followed by = or a letter inside an attribute value is left alone,
  * &#0; surrogates and out-of-range numbers become U+FFFD, and &#x80;-&#x9F; map through
  * windows-1252 (&#x80; is the euro sign). Unknown names stay as written.
+ *
+ * @internal The validator's own parser, not part of the public API; it can change between releases.
  */
 final class CharacterReferences
 {

@@ -46,6 +46,8 @@ use const PREG_OFFSET_CAPTURE;
  *   there, which depend on the tree, so callers that care must refuse those elements.
  *
  * Doctype tokens carry the raw text after "<!DOCTYPE" with no further parsing.
+ *
+ * @internal The validator's own parser, not part of the public API; it can change between releases.
  */
 final class Tokenizer
 {
