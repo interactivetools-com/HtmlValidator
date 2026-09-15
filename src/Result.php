@@ -14,8 +14,9 @@ namespace Itools\HtmlValidator;
  *         echo htmlspecialchars($violation->message), "<br>";
  *     }
  *
- * errors holds one Violation per distinct problem, in document order, at most 50. Every
- * value in a Violation is plain text taken from the content, so HTML-encode it before output.
+ * errors holds one Violation per distinct problem, in document order, at most
+ * HtmlValidator::$maxErrors of them. A Violation's detail and message are plain text taken
+ * from the content, so HTML-encode them before output.
  */
 final class Result
 {

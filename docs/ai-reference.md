@@ -45,7 +45,7 @@ $result->ok;       // true when the content passed
 $result->errors;   // Violation[] - empty when ok, otherwise one per distinct problem
 ```
 
-Requirements: PHP 8.1+, `ext-mbstring`. No other dependencies.
+Requirements: PHP 8.1+. No extensions, no dependencies.
 
 ## API
 
@@ -304,8 +304,7 @@ case-insensitive:
 1. Any of these tokens rejects with `css-not-allowed` and the token as the detail: a
    backslash `\`, `@import`, `@charset`, `image(`, `image-set(`, `src(`, `expression(`,
    `-moz-binding`, `behavior:` (whitespace before the colon allowed), an attribute selector
-   using `^=`, `$=` or `*=` (`[value^=`, `[ value ^=`, `[value/**/^=`), and `unicode-range`
-   (whitespace before the colon allowed).
+   using `^=`, `$=` or `*=` (`[value^=`, `[ value ^=`, `[value/**/^=`), and `unicode-range`.
 2. Every `url(` is read up to the closing quote, `)` or whitespace, and its scheme, read as in
    [URLs](#rules-urls), must be absent or in `CSS_URL_SCHEMES`: `http`, `https`. So
    `url(images/bg.png)`, `url(/x.png)`, `url(//cdn.example/x.png)`, `url(#clip)` and

@@ -19,9 +19,9 @@ namespace Itools\HtmlValidator;
  * is the token's source when the input had LF line endings.
  *
  * UNCLOSED is always the last token, and only comes when the input ends inside a tag, a
- * comment, a doctype, or the content of a raw-text element such as <style>. A browser drops
- * an unfinished tag and ends the rest as written, but a fragment printed into a page keeps
- * reading: the page up to the next quote becomes the attribute value, or the page up to
+ * comment, a doctype, or the content of a raw-text element such as <style>. At the end of a
+ * document a browser drops the unfinished tag, but a fragment printed into a page is not at
+ * the end: the page up to the next quote becomes the attribute value, or the page up to
  * </style> becomes CSS. start is where the unfinished markup opened and end is the end of
  * the input, so the source is the whole unfinished piece.
  *

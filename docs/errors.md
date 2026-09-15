@@ -32,4 +32,5 @@ Three things to know when reading a result:
   going away.
 - **The same problem on five tags is reported once.** Errors are deduplicated by code and
   detail: five `<script>` tags are one error, five different `on*` attributes are five. The
-  list stops at 50 distinct problems, and `unclosed-markup` is always last.
+  list stops at `HtmlValidator::$maxErrors` distinct problems (50 by default), and
+  `unclosed-markup` is always last.

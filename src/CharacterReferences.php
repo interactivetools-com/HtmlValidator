@@ -4,11 +4,11 @@ declare(strict_types=1);
 namespace Itools\HtmlValidator;
 
 // import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
+use function chr;
 use function ctype_alnum;
 use function hexdec;
 use function html_entity_decode;
 use function ltrim;
-use function mb_chr;
 use function preg_replace_callback;
 use function str_contains;
 use function strlen;
@@ -138,6 +138,11 @@ final class CharacterReferences
             return "\u{FFFD}";
         }
         $cp = self::WINDOWS_1252[$cp] ?? $cp;
-        return mb_chr($cp, 'UTF-8');
+        return match (true) {
+            $cp < 0x80    => chr($cp),
+            $cp < 0x800   => chr(0xC0 | $cp >> 6) . chr(0x80 | $cp & 0x3F),
+            $cp < 0x10000 => chr(0xE0 | $cp >> 12) . chr(0x80 | $cp >> 6 & 0x3F) . chr(0x80 | $cp & 0x3F),
+            default       => chr(0xF0 | $cp >> 18) . chr(0x80 | $cp >> 12 & 0x3F) . chr(0x80 | $cp >> 6 & 0x3F) . chr(0x80 | $cp & 0x3F),
+        };
     }
 }

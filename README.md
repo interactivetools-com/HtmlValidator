@@ -28,7 +28,7 @@ sees are the ones a browser sees, and memory is the content string plus a few KB
 
 ## Quick Start
 
-Requires PHP 8.1+ with `ext-mbstring` (enabled by default).
+Requires PHP 8.1+. No extensions, no dependencies.
 
 ```bash
 composer require itools/htmlvalidator
@@ -79,8 +79,9 @@ HtmlValidator::$iframeHosts  = ['www.youtube.com', 'www.youtube-nocookie.com', '
   `data-href` into a link runs it.
 - **Elements a browser reads differently from the checker.** `<template>`, `<noscript>`,
   `<xmp>`, `<plaintext>`, `<svg>` and `<math>` change how the browser reads what follows them,
-  so a payload inside can hide from a parser and still run. `<base>` and the rest of `<head>`
-  (`<meta>`, `<link>`, `<title>`) change how the page's own scripts load.
+  so a payload inside can hide from a parser and still run. `<base>` changes where the page's
+  own relative `<script src>` paths load from. The rest of `<head>` (`<meta>`, `<link>`,
+  `<title>`) belongs to the page, not the content.
 - **Plugins and frames.** `<object>`, `<embed>`, `<applet>`, and any `<iframe>` whose `src` is
   not on the host list.
 - **URL schemes.** On `href`, `src`, `action`, `poster` and the other attributes browsers

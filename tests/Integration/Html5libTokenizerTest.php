@@ -72,7 +72,7 @@ final class Html5libTokenizerTest extends TestCase
             foreach ($doc['tests'] as $i => $test) {
                 $unescape = static fn(mixed $s): mixed => ($test['doubleEscaped'] ?? false) && is_string($s) ? json_decode('"' . $s . '"') : $s;
                 $input    = $unescape($test['input']);
-                if ($input === null || !mb_check_encoding($input, 'UTF-8')) {
+                if ($input === null || preg_match('//u', $input) !== 1) {
                     self::skip('invalid utf-8 input');
                     continue;
                 }

@@ -45,7 +45,8 @@ final class HtmlValidator
      * the tokenizer into a mode a validator cannot follow (plaintext, xmp, noembed, noframes).
      * Includes the obsolete presentational elements old content still holds (font, center,
      * strike, big, tt, marquee and friends), since browsers render them without script.
-     * Elements with a switch (style, iframe, the form elements) are listed with their group.
+     * style, iframe and the form elements are not here: they pass by their switch ($allowStyles,
+     * $allowEmbeds, and $allowForms with FORM_ELEMENTS).
      */
     public const ELEMENTS = [
         'a', 'abbr', 'acronym', 'address', 'area', 'article', 'aside', 'audio',
@@ -64,7 +65,7 @@ final class HtmlValidator
     /** Pass only when $allowForms is set. Forms submit data and can imitate a login box, but they run no script. */
     public const FORM_ELEMENTS = ['form', 'input', 'button', 'select', 'selectedcontent', 'option', 'optgroup', 'datalist', 'textarea', 'label', 'fieldset', 'legend', 'output'];
 
-    /** Refused whatever the element. on* is matched by prefix, so new event handlers are covered. */
+    /** Refused on every element. The on* attributes are refused too, by prefix rather than by name, so new event handlers are covered without a list. */
     public const ATTRIBUTES_REFUSED = ['srcdoc'];
 
     /** Attribute names that pass only when $allowForms is set. */
@@ -105,7 +106,7 @@ final class HtmlValidator
     // every url( in CSS, capturing what is inside up to the closing quote, paren or whitespace
     private const CSS_URL = '/url\(\s*+["\']?+\s*+([^"\')\s]*)/i';
 
-    // bytes that cannot start or continue a UTF-8 character; a match gives the length of the valid prefix
+    // the longest run of well-formed UTF-8 from the start; the byte after the match is the first bad one
     private const UTF8_PREFIX = '/\A(?:[\x00-\x7F]|[\xC2-\xDF][\x80-\xBF]|\xE0[\xA0-\xBF][\x80-\xBF]|[\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}|\xED[\x80-\x9F][\x80-\xBF]|\xF0[\x90-\xBF][\x80-\xBF]{2}|[\xF1-\xF3][\x80-\xBF]{3}|\xF4[\x80-\x8F][\x80-\xBF]{2})*+/';
 
     // C0 control characters other than tab, LF and CR
@@ -362,8 +363,7 @@ final class HtmlValidator
     private static function excerpt(string $value): string
     {
         preg_match('/^.{0,' . self::$maxDetailLength . '}/us', $value, $match);
-        $start = $match[0] ?? substr($value, 0, self::$maxDetailLength);
-        return strlen($start) < strlen($value) ? "$start..." : $start;
+        return strlen($match[0]) < strlen($value) ? "$match[0]..." : $match[0];
     }
 
     //endregion

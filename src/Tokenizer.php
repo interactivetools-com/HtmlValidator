@@ -34,14 +34,16 @@ use const PREG_OFFSET_CAPTURE;
  * Memory is the input string plus the current token. There is no DOM, no nesting limit
  * and nothing retained between tokens.
  *
+ * The content of <title>, <textarea>, <style>, <iframe>, <noembed>, <noframes>, <xmp>,
+ * <noscript> and <script> is text up to the matching end tag, as in a browser with scripting
+ * on. Pass $switchOnElements = false to turn that off and tokenize as if no tree builder were
+ * listening, which is what the html5lib suite expects.
+ *
  * Two deliberate differences from a browser:
  *
- * - The content of <title>, <textarea>, <style>, <iframe>, <noembed>, <noframes>, <xmp>,
- *   <noscript> and <script> is text up to the matching end tag, as it is in a browser with
- *   scripting on. <script> content uses the plain raw-text rule rather than the script-data
- *   rule, so the only difference is where "</script>" ends inside a <!-- --> comment in
- *   script source; a script tag was seen either way. Pass $switchOnElements = false to
- *   turn all of this off and tokenize as if no tree builder were listening.
+ * - <script> content is read with the plain raw-text rule instead of the script-data rule.
+ *   The two differ only in where "</script>" ends inside a <!-- --> comment in script
+ *   source, and a script tag was seen either way.
  * - <svg> and <math> content is tokenized as HTML. Browsers switch to foreign-content rules
  *   there, which depend on the tree, so callers that care must refuse those elements.
  *
