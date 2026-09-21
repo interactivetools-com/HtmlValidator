@@ -1,8 +1,9 @@
 # Benchmarks
 
-`check-speed.php` times `HtmlValidator::check()` on generated content of known sizes, on a
-set of hostile inputs built to cost a tokenizer time, and on the real files in `corpus/` and
-`tests/Support/fixtures/`. `results.md` is the raw output of one run.
+`check-speed.php` times `HtmlValidator::check()` on generated content of known sizes, on
+typical pages the way an editor writes them, on a set of hostile inputs built to cost a
+tokenizer time, and on the real files in `corpus/` and `tests/Support/fixtures/`. `results.md`
+is the raw output of one run.
 
 Run it through `run.sh`, which turns opcache on and xdebug off and caps the memory and
 process count of everything it starts:
@@ -26,6 +27,15 @@ Every generated input passes the check. Throughput is the input size divided by 
 time, so the three shapes show how much the cost depends on tag density rather than on
 bytes.
 
+**Typical pages** are whole pages as a WYSIWYG editor writes them, at the word counts pages
+usually have: a news item of 250 words, a home page section built from divs and buttons, a
+blog post of 1,000 words and an article of 1,800 (SEO guidance puts a ranking article at
+1,000 to 2,000), an FAQ of 40 questions, a policy page of 5,000 words, and a newsletter
+pasted from an email builder, which is the densest markup an editor field usually holds. The
+table gives each page's size and tags per KB next to its time, so a reader can place their
+own content between the rows. The generated table above says how the cost scales; this one
+says what a page costs.
+
 **Hostile inputs** are built to cost a tokenizer time or memory: a long run of `<`, an
 attribute value that never closes, thousands of attributes on one tag, very deep nesting, a
 large `<style>` block, and an attribute value that is one long chain of character
@@ -33,7 +43,7 @@ references. Most of them pass, since nothing in them runs script; the Result col
 which are refused and with which error code. The table shows what reading each one costs
 either way.
 
-Both of those tables are timed in a fresh PHP process per input, which also reports how
+Those three tables are timed in a fresh PHP process per input, which also reports how
 much its peak memory grew during the timed calls. That growth includes PCRE's own
 allocations, which `memory_get_peak_usage()` cannot see.
 

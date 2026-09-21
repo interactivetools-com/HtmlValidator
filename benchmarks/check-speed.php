@@ -3,9 +3,10 @@
 declare(strict_types=1);
 
 /**
- * Times HtmlValidator::check() on generated content of known sizes, on hostile inputs built to
- * cost a tokenizer time, and on the real files in corpus/ and tests/Support/fixtures/, and
- * prints the markdown tables in benchmarks/results.md.
+ * Times HtmlValidator::check() on generated content of known sizes, on typical pages the way
+ * an editor writes them, on hostile inputs built to cost a tokenizer time, and on the real
+ * files in corpus/ and tests/Support/fixtures/, and prints the markdown tables in
+ * benchmarks/results.md.
  *
  *     php -d opcache.enable_cli=1 -d xdebug.mode=off benchmarks/check-speed.php
  *     php ... benchmarks/check-speed.php --corpus=corpus                            # add the corpus and fixture tables (run tools/fetch-corpus.php first)
@@ -92,31 +93,30 @@ if (!mkdir($tempDir, 0700)) {
 }
 
 echo "## Generated content\n\n";
-$headers = ['Shape', 'Size', 'Check time', 'Throughput', 'Peak memory added'];
-if ($sanitizer !== null) {
-    $headers = [...$headers, 'HTMLPurifier time', 'HTMLPurifier memory'];
-}
 $rows = [];
 foreach (SHAPES as $shape => $generator) {
     foreach (SIZES as $label => $bytes) {
         $path = "$tempDir/generated-" . preg_replace('/\W+/', '-', $shape) . "-$bytes.html";
         file_put_contents($path, (__NAMESPACE__ . '\\' . $generator)($bytes));
-        $result = HtmlValidator::check((string)file_get_contents($path));
-        if (!$result->ok) {
-            fwrite(STDERR, "generated '$shape' at $label was rejected: {$result->errors[0]->message}\n");
-            exit(1);
-        }
-        [$seconds, $peakKb] = measureCheck($path);
-        $row = [$shape, $label, ms($seconds), sprintf('%.0f MB/s', filesize($path) / 1048576 / $seconds), memoryCell($peakKb)];
-        if ($sanitizer !== null) {
-            $sanitized = measure($path, 'sanitize', $sanitizer);
-            $row[]     = $sanitized === null ? 'failed' : ms($sanitized[0]);
-            $row[]     = $sanitized === null ? 'failed' : memoryCell($sanitized[1]);
-        }
-        $rows[] = $row;
+        $rows[] = [$shape, $label, ...timingColumns($path, "$shape at $label", $sanitizer)];
     }
 }
-echo renderMdTable($headers, $rows), "\n";
+echo renderMdTable(['Shape', 'Size', ...timingHeaders($sanitizer)], $rows), "\n";
+
+//endregion
+//region Typical Pages
+
+// Whole pages the way an editor writes them, at the word counts pages usually have. Tags per
+// KB is what the generated table shows the cost depends on, so a reader can place their own
+// content between the rows.
+echo "## Typical pages\n\n";
+$rows = [];
+foreach (typicalPages() as $page => $html) {
+    $path = "$tempDir/page-" . preg_replace('/\W+/', '-', $page) . '.html';
+    file_put_contents($path, $html);
+    $rows[] = [$page, humanBytes(strlen($html)), sprintf('%.0f', preg_match_all('/<[a-z]/i', $html) / (strlen($html) / 1024)), ...timingColumns($path, $page, $sanitizer)];
+}
+echo renderMdTable(['Page', 'Size', 'Tags per KB', ...timingHeaders($sanitizer)], $rows), "\n";
 
 //endregion
 //region Hostile Inputs
@@ -195,14 +195,20 @@ rmdir($tempDir);
 //endregion
 //region Generators
 
+/** $count random words, space separated. */
+function words(int $count): string
+{
+    $words = [];
+    for ($i = 0; $i < $count; $i++) {
+        $words[] = WORDS[mt_rand(0, count(WORDS) - 1)];
+    }
+    return implode(' ', $words);
+}
+
 /** A sentence of 6 to 14 random words, capitalized, with a period. */
 function sentence(): string
 {
-    $words = [];
-    for ($i = mt_rand(6, 14); $i > 0; $i--) {
-        $words[] = WORDS[mt_rand(0, count(WORDS) - 1)];
-    }
-    return ucfirst(implode(' ', $words)) . '.';
+    return ucfirst(words(mt_rand(6, 14))) . '.';
 }
 
 /** Repeats $paragraph() until the content is at least $targetBytes long. */
@@ -278,6 +284,182 @@ function generateWordPaste(int $targetBytes): string
     });
 }
 
+/**
+ * Pages as a WYSIWYG editor writes them, at the sizes pages usually have: SEO guidance puts a
+ * ranking article at 1,000 to 2,000 words, a news item or product page at 200 to 500, and a
+ * policy or documentation page at several thousand. A newsletter pasted from an email builder
+ * is the densest markup an editor field usually holds.
+ *
+ * @return array<string, string> label => HTML
+ */
+function typicalPages(): array
+{
+    mt_srand(42);
+    return [
+        'news item, 250 words'     => shortPage(250),
+        'home page section'        => landingSection(),
+        'blog post, 1,000 words'   => article(1000),
+        'article, 1,800 words'     => article(1800),
+        'FAQ, 40 questions'        => faq(40),
+        'policy page, 5,000 words' => longText(5000),
+        'newsletter, 12 blocks'    => newsletter(12),
+    ];
+}
+
+/** A news item or product page: a few paragraphs, sometimes a heading between them. */
+function shortPage(int $words): string
+{
+    $html  = '';
+    $count = 0;
+    while ($count < $words) {
+        if ($count > 0 && mt_rand(0, 3) === 0) {
+            $html .= heading(2) . "\n";
+        }
+        $piece  = paragraph(mt_rand(2, 4));
+        $html  .= $piece . "\n";
+        $count += wordCount($piece);
+    }
+    return $html;
+}
+
+/** A blog post or article: a heading every 250 words or so, a list here and there, one or two images, a quote. */
+function article(int $words): string
+{
+    $html         = paragraph(2) . "\n";
+    $count        = wordCount($html);
+    $sinceHeading = 0;
+    $images       = 0;
+    while ($count < $words) {
+        if ($sinceHeading >= 250) {
+            $html        .= heading(mt_rand(0, 2) === 0 ? 3 : 2) . "\n";
+            $sinceHeading = 0;
+        }
+        $roll = mt_rand(1, 10);
+        if ($roll === 1) {
+            $piece = bulletList();
+        } elseif ($roll === 2 && $images < 2) {
+            $piece = $images === 0 ? image() : '<p>' . floatedImage() . sentence() . ' ' . sentence() . '</p>';
+            $images++;
+        } elseif ($roll === 3) {
+            $piece = '<blockquote><p>' . sentence() . ' ' . sentence() . '</p></blockquote>';
+        } else {
+            $piece = paragraph(mt_rand(3, 5));
+        }
+        $html         .= $piece . "\n";
+        $count        += wordCount($piece);
+        $sinceHeading += wordCount($piece);
+    }
+    return $html;
+}
+
+/** A home page section built in the editor: divs with classes, headings, links styled as buttons, icons. */
+function landingSection(): string
+{
+    $html = '<div class="hero"><h1>' . ucfirst(words(5)) . '</h1><p class="lead">' . sentence() . '</p>'
+        . '<p><a class="btn btn-primary" href="/contact/">Get a quote</a> <a class="btn btn-outline" href="tel:+16045550100">Call 604-555-0100</a></p></div>' . "\n"
+        . '<div class="row">';
+    for ($i = 0; $i < 3; $i++) {
+        $html .= '<div class="col"><img src="/uploads/icon-' . words(1) . '.png" alt="" width="64" height="64" /><h3>' . ucfirst(words(3)) . '</h3>'
+            . '<p>' . sentence() . ' ' . sentence() . '</p><p><a href="/services/' . words(1) . '/">Learn more &raquo;</a></p></div>';
+    }
+    return $html . '</div>' . "\n" . heading(2) . "\n" . paragraph(3) . "\n" . bulletList() . "\n"
+        . '<div class="cta"><h2>' . ucfirst(words(4)) . '</h2><p>' . sentence() . '</p><p><a class="btn btn-primary" href="mailto:office@example.com">Email us</a></p></div>' . "\n";
+}
+
+/** A legal, policy or documentation page: numbered headings, long paragraphs, almost no inline markup. */
+function longText(int $words): string
+{
+    $html    = '';
+    $count   = 0;
+    $section = 1;
+    while ($count < $words) {
+        if ($count === 0 || mt_rand(0, 4) === 0) {
+            $html .= '<h3>' . $section++ . '. ' . ucfirst(words(mt_rand(2, 5))) . '</h3>' . "\n";
+        }
+        $piece  = paragraph(mt_rand(3, 6), 0.05, 0.05);
+        $html  .= $piece . "\n";
+        $count += wordCount($piece);
+    }
+    return $html;
+}
+
+/** A newsletter pasted from an email builder: a table with inline styles on every cell, tracked links, hosted images. */
+function newsletter(int $blocks): string
+{
+    $html = '<table style="width: 100%; border-collapse: collapse;" cellpadding="0" cellspacing="0" border="0"><tbody>';
+    for ($i = 0; $i < $blocks; $i++) {
+        $html .= '<tr><td style="padding: 20px; font-family: Arial, sans-serif; font-size: 14px; line-height: 1.5; color: #333333;">'
+            . '<h2 style="margin: 0 0 10px 0; font-size: 20px; color: #1a5276;">' . ucfirst(words(4)) . '</h2>'
+            . '<p style="margin: 0 0 10px 0;">' . sentence() . ' ' . sentence() . '</p>'
+            . '<p style="margin: 0;"><a href="https://example.com/news/' . words(1) . '/?utm_source=newsletter&amp;utm_medium=email&amp;utm_campaign=' . words(1) . '" style="color: #1a5276; text-decoration: underline;">' . ucfirst(words(3)) . '</a></p>'
+            . '</td><td style="padding: 20px; width: 200px;" valign="top"><img src="https://example.com/uploads/nl-' . mt_rand(1, 99) . '.jpg" alt="" width="200" height="130" style="display: block; border: 0;" /></td></tr>';
+    }
+    return $html . '</tbody></table>' . "\n";
+}
+
+/** An FAQ page: a question as a heading and a short answer, $count times. */
+function faq(int $count): string
+{
+    $html = '';
+    for ($i = 0; $i < $count; $i++) {
+        $html .= '<h3>' . ucfirst(words(mt_rand(5, 10))) . '?</h3>' . "\n" . paragraph(mt_rand(1, 3)) . "\n";
+    }
+    return $html;
+}
+
+/** A paragraph as an editor writes it: <p>, sometimes a <strong> lead-in, and at $linkRate per sentence a link to a page on the site or elsewhere. */
+function paragraph(int $sentences, float $linkRate = 0.25, float $boldRate = 0.3): string
+{
+    $text = [];
+    for ($i = 0; $i < $sentences; $i++) {
+        $sentence = sentence();
+        if (chance($boldRate)) {
+            $sentence = '<strong>' . ucfirst(words(2)) . '</strong> ' . lcfirst($sentence);
+        }
+        if (chance($linkRate)) {
+            $sentence .= mt_rand(0, 2) === 0
+                ? ' See <a href="https://example.com/guides/' . words(1) . '-' . words(1) . '/" target="_blank" rel="noopener">' . words(3) . '</a>.'
+                : ' Read more about <a href="/services/' . words(1) . '/">' . words(2) . '</a>.';
+        }
+        $text[] = $sentence;
+    }
+    return '<p>' . implode(' ', $text) . '</p>';
+}
+
+function heading(int $level): string
+{
+    return "<h$level>" . ucfirst(words(mt_rand(3, 7))) . "</h$level>";
+}
+
+function bulletList(): string
+{
+    $items = '';
+    for ($i = mt_rand(3, 5); $i > 0; $i--) {
+        $items .= '<li>' . ucfirst(words(mt_rand(4, 12))) . '</li>';
+    }
+    return "<ul>$items</ul>";
+}
+
+function image(): string
+{
+    return '<p><img src="/uploads/photo-' . mt_rand(100, 999) . '.jpg" alt="' . ucfirst(words(4)) . '" width="800" height="533" /></p>';
+}
+
+function floatedImage(): string
+{
+    return '<img style="float: left; margin: 0 15px 10px 0;" src="/uploads/photo-' . mt_rand(100, 999) . '.jpg" alt="' . ucfirst(words(3)) . '" width="300" height="200" />';
+}
+
+function chance(float $rate): bool
+{
+    return mt_rand() / mt_getrandmax() < $rate;
+}
+
+function wordCount(string $html): int
+{
+    return str_word_count(strip_tags($html));
+}
+
 /** @return array<string, string> label => HTML, each built to cost a tokenizer time or memory */
 function hostileInputs(): array
 {
@@ -347,6 +529,37 @@ function measure(string $path, string $mode, ?string $sanitizer): ?array
         return null;
     }
     return [(float)$match[1], IS_LINUX ? (int)$match[2] : null];
+}
+
+/**
+ * The timing columns for one generated file: check time, throughput and peak memory, plus the
+ * HTMLPurifier pair when --sanitizer is set. Every generated input is meant to pass, so a
+ * rejection is a bug in a generator and stops the run.
+ *
+ * @return string[]
+ */
+function timingColumns(string $path, string $label, ?string $sanitizer): array
+{
+    $result = HtmlValidator::check((string)file_get_contents($path));
+    if (!$result->ok) {
+        fwrite(STDERR, "generated '$label' was rejected: {$result->errors[0]->message}\n");
+        exit(1);
+    }
+    [$seconds, $peakKb] = measureCheck($path);
+    $columns = [ms($seconds), sprintf('%.0f MB/s', filesize($path) / 1048576 / $seconds), memoryCell($peakKb)];
+    if ($sanitizer !== null) {
+        $sanitized = measure($path, 'sanitize', $sanitizer);
+        $columns[] = $sanitized === null ? 'failed' : ms($sanitized[0]);
+        $columns[] = $sanitized === null ? 'failed' : memoryCell($sanitized[1]);
+    }
+    return $columns;
+}
+
+/** @return string[] the headers timingColumns() fills */
+function timingHeaders(?string $sanitizer): array
+{
+    $headers = ['Check time', 'Throughput', 'Peak memory added'];
+    return $sanitizer === null ? $headers : [...$headers, 'HTMLPurifier time', 'HTMLPurifier memory'];
 }
 
 /** measure() for the check, which is not expected to fail. @return array{float, ?int} */
