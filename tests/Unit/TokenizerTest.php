@@ -77,6 +77,19 @@ final class TokenizerTest extends TestCase
         $this->assertSame($body, $tokens[0]->data);
     }
 
+    /**
+     * Many short comments cost one scan each: the close is found with one search for either closer, not
+     * one search per closer (100K comments took 73 s when the absent closer scanned to the end every time)
+     */
+    public function testManyShortCommentsStayLinear(): void
+    {
+        foreach (['-->', '--!>'] as $close) {
+            $tokens = $this->tokens(str_repeat("<!--x$close", 100000) . '<b>');
+            $this->assertCount(100001, $tokens, $close);
+            $this->assertSame('b', end($tokens)->name, $close);
+        }
+    }
+
     public function testEmptyCommentForms(): void
     {
         foreach (['<!-->', '<!--->', '<!---->'] as $html) {
