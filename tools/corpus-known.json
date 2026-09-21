@@ -148,8 +148,7 @@
             {
                 "code": "css-not-allowed",
                 "detail": "^\\[style\\*=",
-                "open": true,
-                "reason": "div[style*=\"margin: 16px 0\"] is the standard Outlook.com fix in email templates; the substring-selector rule refuses every template that has it"
+                "reason": "div[style*=\"margin: 16px 0\"] undoes a wrapper the Android 4.4 (2013) mail app added; substring selectors are refused by design since an inline style can carry a signed URL, and deleting the rule makes the template pass"
             },
             {
                 "code": "element-not-allowed",
@@ -1082,9 +1081,8 @@
         "rejects": [
             {
                 "code": "css-not-allowed",
-                "detail": "^(\\\\|\\[src\\*=|\\[style\\*=)",
-                "open": true,
-                "reason": "TemplateStyles CSS with content:\"\\a0\" escapes in strings and substring attribute selectors; the same questions as mailchimp and cerberus"
+                "detail": "^\\[(src|style)\\*=",
+                "reason": "TemplateStyles dark-mode rules match on img[src*=] and [style*=]; substring selectors are refused by design, and the pages reject for link and meta anyway"
             },
             {
                 "code": "element-not-allowed",
