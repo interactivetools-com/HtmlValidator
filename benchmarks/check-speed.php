@@ -62,6 +62,7 @@ if ($sanitizer !== null) {
 if (isset($options['subprocess'])) {
     $html    = (string)file_get_contents($options['file']);
     $call    = $options['mode'] === 'sanitize' ? sanitizer($html) : fn() => HtmlValidator::check($html);
+    HtmlValidator::$fastPath = $options['mode'] !== 'full';
     $before  = peakKb();
     $seconds = fastest($call);
     printf("%.9f %d\n", $seconds, IS_LINUX ? peakKb() - $before : 0);
@@ -532,9 +533,10 @@ function measure(string $path, string $mode, ?string $sanitizer): ?array
 }
 
 /**
- * The timing columns for one generated file: check time, throughput and peak memory, plus the
- * HTMLPurifier pair when --sanitizer is set. Every generated input is meant to pass, so a
- * rejection is a bug in a generator and stops the run.
+ * The timing columns for one generated file: the check as shipped, the same check with the
+ * fast path off, throughput and peak memory, plus the HTMLPurifier pair when --sanitizer is
+ * set. Every generated input is meant to pass, so a rejection is a bug in a generator and
+ * stops the run.
  *
  * @return string[]
  */
@@ -546,7 +548,8 @@ function timingColumns(string $path, string $label, ?string $sanitizer): array
         exit(1);
     }
     [$seconds, $peakKb] = measureCheck($path);
-    $columns = [ms($seconds), sprintf('%.0f MB/s', filesize($path) / 1048576 / $seconds), memoryCell($peakKb)];
+    $full    = measure($path, 'full', null) ?? exit(1);
+    $columns = [ms($seconds), ms($full[0]), sprintf('%.0f MB/s', filesize($path) / 1048576 / $seconds), memoryCell($peakKb)];
     if ($sanitizer !== null) {
         $sanitized = measure($path, 'sanitize', $sanitizer);
         $columns[] = $sanitized === null ? 'failed' : ms($sanitized[0]);
@@ -558,7 +561,7 @@ function timingColumns(string $path, string $label, ?string $sanitizer): array
 /** @return string[] the headers timingColumns() fills */
 function timingHeaders(?string $sanitizer): array
 {
-    $headers = ['Check time', 'Throughput', 'Peak memory added'];
+    $headers = ['Check time', 'Fast path off', 'Throughput', 'Peak memory added'];
     return $sanitizer === null ? $headers : [...$headers, 'HTMLPurifier time', 'HTMLPurifier memory'];
 }
 

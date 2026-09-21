@@ -30,6 +30,10 @@ rejects anything that could run script in the page it is printed into, with a `R
 - **Byte checks**: invalid UTF-8 and C0 control characters are refused before tokenizing.
 - **`HtmlValidator::rules()`** returns the rule tables and current switch values for
   settings pages and docs. `Violation::TEMPLATES` holds every message for translation.
+- **A fast path**: text and tags the rules can never refuse (a listed element, double-quoted
+  attributes with nothing a rule looks at) are stepped over in one regex match instead of one
+  token at a time. `HtmlValidator::$fastPath = false` sends every byte through the tokenizer:
+  the same result, slower.
 - **An HTML5 tokenizer** written from the HTML Standard's state list, run against the
   html5lib tokenizer test suite in CI. Internal: the public API is `HtmlValidator`, `Result`
   and `Violation`.

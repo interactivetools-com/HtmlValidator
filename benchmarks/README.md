@@ -25,7 +25,9 @@ same text with an inline tag every few words (links, bold, spans, line breaks), 
 pastes into an editor (`MsoNormal` paragraphs, long `style` attributes, bordered tables).
 Every generated input passes the check. Throughput is the input size divided by the check
 time, so the three shapes show how much the cost depends on tag density rather than on
-bytes.
+bytes. Check time is the check as shipped; Fast path off is the same check with
+`HtmlValidator::$fastPath = false`, every byte through the tokenizer, so the fast path's
+share of the time is visible.
 
 **Typical pages** are whole pages as a WYSIWYG editor writes them, at the word counts pages
 usually have: a news item of 250 words, a home page section built from divs and buttons, a

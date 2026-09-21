@@ -11,6 +11,7 @@ Contents:
 - [Known Non-Goals](#known-non-goals)
 - [Reject, Never Rewrite](#reject-never-rewrite)
 - [Tokens, Not Trees](#tokens-not-trees)
+- [The Fast Path](#the-fast-path)
 - [The Editor Is Not a Layer](#the-editor-is-not-a-layer)
 - [Elements: Allowlist. Attributes: Patterns](#elements-allowlist-attributes-patterns)
 - [URL Schemes: Ten Attributes, and `javascript:` Everywhere](#url-schemes-ten-attributes-and-javascript-everywhere)
@@ -149,6 +150,49 @@ states, and four inputs with lone surrogates.
 Rejected: `DOMDocument` and `DOM\HTMLDocument` (a tree, whole-document memory, and PHP 8.4
 for the HTML5 one); a regex over the raw string (CodeIgniter's `xss_clean` is the cautionary
 tale); Masterminds/html5-php (a full tree builder when only tokens are needed).
+
+## The Fast Path
+
+Most of a check is the tokenizer reading tags one at a time, and most tags an editor writes
+are `<p>`, `<strong>`, `<a href="...">` and `<img src="...">` with nothing a rule looks at.
+So the tokenizer takes an optional anchored regex and, in the data state, steps over whatever
+it matches without producing a token. `HtmlValidator` builds that regex from its own tables:
+text up to a `<`, a `<` that starts nothing, end tags, and start tags of listed elements whose
+attributes are double-quoted and hold no character reference but `&amp;`, no colon (so no
+scheme) unless the attribute is a URL attribute and the value starts with a listed scheme,
+and, in `style`, none of the punctuation the CSS check reads (`\`, `(`, `@`, `[`, `&`) and
+none of its three bare words. Every element that switches the tokenizer's state, every custom
+element, every unquoted or single-quoted value and every other character reference falls
+through to the tokenizer and is checked as before. The rules stay the only place a decision
+is made: the regex can only say "nothing here for them".
+
+The invariant is "a subset of what the rules pass", and `FastPathTest` holds it three ways:
+every run the regex skips, checked on its own with the fast path off, passes and tokenizes
+to text, start tags and end tags only; the near miss of every rule (a handler, a
+`javascript:` URL, a reference in a value, an unquoted value, an unclosed tag, `<style>`,
+`<iframe>`, a custom element), placed first in the content, never matches; and the check
+reports the same violations with `$fastPath` on and off over the fixtures, every html5lib
+tokenizer input and the downloaded corpus. `$fastPath = false` is public so a suspected
+difference can be checked in place, and so the benchmark can show both columns.
+
+Measured 2026-09-21 (local i7-14700F, PHP 8.1, PCRE JIT on, `benchmarks/check-speed.php`):
+a typical page checks in 0.004 to 0.045 ms against 0.04 to 0.31 ms without the fast path,
+the 1 MB tag-dense shape in 2.3 ms against 46.3 ms, and the hostile megabyte of `<` in
+2.0 ms against 180 ms, since a `<` that starts nothing is text to the regex too. What remains
+of a check on clean content is the byte checks and one regex match. Building the regex costs
+about 1 µs, a tenth of a 1 KB check, so it is built once per value of `$allowStyles`.
+
+Past the PCRE limits `preg_match()` returns false: with `pcre.jit=0`, a megabyte of dense
+tags reaches `pcre.backtrack_limit`, since the interpreter counts every group iteration. The
+tokenizer then turns the skip off for the rest of that run instead of paying the limit again
+at every token, and the content is tokenized as before. A bounded repeat (`{1,1000}+`) to
+keep each match under the limit does not compile: PCRE copies the group once per repetition
+and refuses at 64 KB.
+
+Rejected: trying the skip only at "probably safe" spots (a heuristic is a second decision
+maker; the regex is exact or it is nothing); the micro-optimizations measured on the way
+(`isset` over `in_array` for the element list, `strpos` before `scheme()`: each under 5% of
+a check, none worth a line).
 
 ## The Editor Is Not a Layer
 

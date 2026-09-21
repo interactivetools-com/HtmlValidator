@@ -39,6 +39,10 @@ use const PREG_OFFSET_CAPTURE;
  * on. Pass $switchOnElements = false to turn that off and tokenize as if no tree builder were
  * listening, which is what the html5lib suite expects.
  *
+ * Pass $skip, an anchored regex, to step over markup the caller has no use for: in the data
+ * state whatever it matches produces no tokens. HtmlValidator passes one for the text and
+ * tags its rules can never refuse.
+ *
  * Two deliberate differences from a browser:
  *
  * - <script> content is read with the plain raw-text rule instead of the script-data rule.
@@ -83,16 +87,18 @@ final class Tokenizer
     private ?Token          $unclosed     = null;   // set when the input ends inside markup, yielded last
 
     /**
-     * @param string $html             the document or fragment; must be valid UTF-8
-     * @param bool   $switchOnElements read raw-text and RCDATA element content as text (what a browser does)
-     * @param string $state            state to start in, one of the STATE_ constants
-     * @param string $lastStartTag     with STATE_RCDATA or STATE_RAWTEXT, the element whose end tag returns to data
+     * @param string  $html             the document or fragment; must be valid UTF-8
+     * @param bool    $switchOnElements read raw-text and RCDATA element content as text (what a browser does)
+     * @param string  $state            state to start in, one of the STATE_ constants
+     * @param string  $lastStartTag     with STATE_RCDATA or STATE_RAWTEXT, the element whose end tag returns to data
+     * @param ?string $skip             an anchored regex (the A modifier); in the data state whatever it matches is stepped over without producing tokens
      */
     public function __construct(
         string $html,
         private readonly bool $switchOnElements = true,
         private string $state = self::STATE_DATA,
         private string $lastStartTag = '',
+        private ?string $skip = null,
     ) {
         $this->html   = str_replace(["\r\n", "\r"], "\n", $html);   // the input-stream preprocessing step
         $this->length = strlen($this->html);
@@ -111,6 +117,17 @@ final class Tokenizer
             }
 
             $pos = $this->pos;
+
+            if ($this->skip !== null) {
+                $skipped = preg_match($this->skip, $html, $m, 0, $pos);
+                if ($skipped === 1) {
+                    $this->pos = $pos + strlen($m[0]);
+                    continue;
+                }
+                if ($skipped === false) {
+                    $this->skip = null;   // past a PCRE limit; trying again at every token would pay that limit each time
+                }
+            }
 
             // text up to the next <
             if ($html[$pos] !== '<') {

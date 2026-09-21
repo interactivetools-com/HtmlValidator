@@ -73,6 +73,7 @@ HtmlValidator::$allowEmbeds  = true;    // <iframe> passes when its src host is 
 HtmlValidator::$iframeHosts  = ['www.youtube.com', 'www.youtube-nocookie.com', 'player.vimeo.com', 'www.google.com'];
 HtmlValidator::$maxErrors       = 50;   // distinct errors reported per check
 HtmlValidator::$maxDetailLength = 80;   // characters of content quoted in a detail before "..."
+HtmlValidator::$fastPath        = true; // text and tags the rules can never refuse are stepped over in one regex match; false sends every byte through the tokenizer, same result, slower
 ```
 
 `$iframeHosts` entries are host names only, matched whole and case-insensitively: no scheme,
@@ -178,7 +179,11 @@ control characters inside a detail are escaped (`\n`), so a detail is always one
    quote the content after this step.
 3. **Tokens.** The content is tokenized as HTML5 and every start tag is checked as it is
    produced. Text, comments and end tags are never checked, with one exception: the text
-   inside `<style>` is checked as CSS.
+   inside `<style>` is checked as CSS. Runs of text and of tags whose every attribute a regex
+   proves safe (a listed element, double-quoted values with no character reference but
+   `&amp;`, no scheme but a listed one, no CSS construct the CSS check reads) are stepped over
+   without being tokenized; a run the regex does not match is tokenized and checked as usual,
+   so the result is the same with `$fastPath` off.
 4. **Per start tag**, in this order: the element must be allowed, or the tag reports
    `element-not-allowed` and its attributes are skipped. An `<iframe>` then has its `src` host
    checked. Then each attribute: an `on*` name reports `event-handler`; a refused name reports

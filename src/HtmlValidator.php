@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Itools\HtmlValidator;
 
 // import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
-use function addcslashes, array_map, array_values, count, implode, in_array, preg_match, preg_match_all, preg_quote, preg_replace, str_replace, str_starts_with, strlen, strtolower, substr;
+use function addcslashes, array_diff, array_map, array_values, count, implode, in_array, preg_match, preg_match_all, preg_quote, preg_replace, str_replace, str_starts_with, strlen, strtolower, substr;
 
 use const PREG_OFFSET_CAPTURE;
 
@@ -32,7 +32,8 @@ use const PREG_OFFSET_CAPTURE;
  *
  * The check runs on the HTML5 token stream and never builds a tree, so it sees the same
  * tags and attributes a browser does, in one pass, with memory that does not grow with
- * nesting.
+ * nesting. Text and tags the rules can never refuse are stepped over in one regex match
+ * instead of one token at a time ($fastPath); everything else is tokenized and checked.
  */
 final class HtmlValidator
 {
@@ -136,6 +137,10 @@ final class HtmlValidator
     public static int $maxErrors       = 50;    // distinct errors reported per check
     public static int $maxDetailLength = 80;    // characters of content quoted in an error message before "..."
 
+    // Text and tags the rules can never refuse are stepped over in one regex match instead of one token at a time.
+    // Off, every byte goes through the tokenizer: the same result, slower. For checking a difference you suspect.
+    public static bool $fastPath = true;
+
     //endregion
     //region Public API
 
@@ -217,7 +222,7 @@ final class HtmlValidator
     private function walk(): void
     {
         $inStyle = false;
-        foreach ((new Tokenizer($this->html))->tokens() as $token) {
+        foreach ((new Tokenizer($this->html, skip: self::$fastPath ? self::knownSafePattern() : null))->tokens() as $token) {
             if (count($this->errors) >= self::$maxErrors) {
                 return;
             }
@@ -250,6 +255,45 @@ final class HtmlValidator
             $detail = addcslashes($detail, "\200..\377");
         }
         $this->errors["$code\0$detail"] ??= new Violation($code, $detail);
+    }
+
+    //endregion
+    //region Fast Path
+
+    /** @var array<int, string> the known-safe regex with $allowStyles off (0) and on (1), built on first use */
+    private static array $knownSafe = [];
+
+    /**
+     * An anchored regex for the markup the rules can never refuse, which the tokenizer steps over
+     * in one match instead of one token at a time: text, end tags, and start tags of listed elements
+     * whose attributes are double-quoted and hold nothing a rule looks at. Everything else, including
+     * every element that switches the tokenizer's state, custom elements, unquoted values and
+     * character references, falls through to the tokenizer and is checked as usual, so the rules stay
+     * the only place a decision is made. FastPathTest proves every run this matches passes on its own.
+     */
+    private static function knownSafePattern(): string
+    {
+        $styles = (int)self::$allowStyles;
+        if (isset(self::$knownSafe[$styles])) {
+            return self::$knownSafe[$styles];
+        }
+        $space = '[\t\n\f ]';
+        // a value with no character reference but &amp; (a reference can decode to anything) and no colon, so no scheme
+        $value = '(?:[^"&<>:]|&amp;)*+';
+        // a URL attribute value may start with a listed scheme; the rest is a plain value
+        $url = '(?:(?:' . implode('|', self::URL_SCHEMES) . '):)?+' . $value;
+        // CSS with none of the punctuation the CSS check reads (\ escapes, ( every function, @ at-rules, [ selectors,
+        // & references) and none of the three bare words on CSS_FORBIDDEN
+        $css = '(?:(?!-moz-binding|(?<![a-z0-9-])behavior\s*+:|unicode-range)[^"\\\\()@\[&<>])*+';
+        // style="css" when styles are on; a URL attribute with a url; any other name that is not on* or refused, with a value
+        $urlNames     = implode('|', array_diff(self::URL_ATTRIBUTES, self::FORM_ATTRIBUTES));
+        $refusedNames = implode('|', [...self::ATTRIBUTES_REFUSED, ...self::FORM_ATTRIBUTES, 'style']);
+        $attribute    = ($styles ? 'style="' . $css . '"|' : '')
+            . '(?:' . $urlNames . ')="' . $url . '"'
+            . '|(?!on|(?:' . $refusedNames . ')=)[a-z][a-z0-9-]*+="' . $value . '"';
+        // text up to a <, a < that starts nothing (text too), an end tag, or a listed element's start tag with
+        // space-separated attributes; as many of those as follow
+        return self::$knownSafe[$styles] = '~(?:[^<]++|<(?![!/?a-z])|</[a-z][a-z0-9]*+>|<(?:' . implode('|', self::ELEMENTS) . ')(?:' . $space . '++(?:' . $attribute . '))*+' . $space . '*+/?>)++~Ai';
     }
 
     //endregion
