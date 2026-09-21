@@ -97,11 +97,21 @@ final class HtmlValidator
     // a custom element name: a letter, then letters, digits, dots or underscores, with at least one hyphen
     private const CUSTOM_ELEMENT = '/^[a-z][a-z0-9._]*-[a-z0-9._-]*$/';
 
+    // CSS comments and quoted strings, read left to right the way the CSS tokenizer does: a comment runs
+    // to */ or the end of the text, a string to its closing quote or a bare newline, and \ escapes the
+    // next character. Nothing on CSS_FORBIDDEN can be spelled inside either one, so both are blanked first
+    private const CSS_COMMENT_OR_STRING = '/\/\*(?:[^*]++|\*(?!\/))*+(?:\*\/|\z)|"(?:[^"\\\\\n]++|\\\\.)*+(?:"|\n|\z)|\'(?:[^\'\\\\\n]++|\\\\.)*+(?:\'|\n|\z)/s';
+
     // CSS that ran script in some browser, hides what the rest of the stylesheet says, or leaks page data:
     // backslash escapes (\6a avascript), @import and @charset, the image()/image-set()/src() URL functions,
     // IE expression() and behavior:, Firefox -moz-binding, and the two selectors that fire on page data
-    // so a url() can report it: [attr^=value] with ^= $= *= and @font-face unicode-range
-    private const CSS_FORBIDDEN = '/\\\\|@import|@charset|image\(|image-set\(|src\(|expression\(|-moz-binding|behavior\s*:|\[[^\]=]*[\^$*]=|unicode-range/i';
+    // so a url() can report it: [attr^=value] with ^= $= *= and @font-face unicode-range.
+    // The selector's name run is possessive: a plain * backtracks across everything after a [ with no
+    // ]= behind it, and past the PCRE limit preg_match() returns false and the whole block would pass
+    private const CSS_FORBIDDEN = '/\\\\|@import|@charset|image\(|image-set\(|src\(|expression\(|-moz-binding|behavior\s*:|\[[^\]=^$*]*+[\^$*]=|unicode-range/i';
+
+    // a backslash inside a quoted url() argument: an escape there still spells a scheme, url("\6a avascript:")
+    private const CSS_URL_ESCAPE = '/url\(\s*+["\'][^"\')\\\\]*+\\\\/i';
 
     // every url( in CSS, capturing what is inside up to the closing quote, paren or whitespace
     private const CSS_URL = '/url\(\s*+["\']?+\s*+([^"\')\s]*)/i';
@@ -317,8 +327,12 @@ final class HtmlValidator
 
     private function checkCss(string $css): void
     {
-        if (preg_match(self::CSS_FORBIDDEN, $css, $match)) {
+        $code = preg_replace(self::CSS_COMMENT_OR_STRING, ' ', $css) ?? $css;   // past the PCRE limits (megabytes inside one comment or string) the text is checked as written, which is stricter
+        if (preg_match(self::CSS_FORBIDDEN, $code, $match)) {
             $this->fail('css-not-allowed', $match[0]);
+        }
+        if (preg_match(self::CSS_URL_ESCAPE, $css, $match)) {
+            $this->fail('css-not-allowed', self::excerpt($match[0]));
         }
         preg_match_all(self::CSS_URL, $css, $matches);
         foreach ($matches[1] as $url) {
