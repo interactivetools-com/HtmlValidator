@@ -108,8 +108,9 @@ final class HtmlValidator
     // and the two selectors that fire on page data so a url() can report it: [attr^=value] with ^= $= *=
     // and @font-face unicode-range.
     // The selector's name run is possessive: a plain * backtracks across everything after a [ with no
-    // ]= behind it, and past the PCRE limit preg_match() returns false and the whole block would pass
-    private const CSS_FORBIDDEN = '/\\\\|@import|@charset|image\(|image-set\(|src\(|expression\(|-moz-binding|(?<![a-z0-9-])behavior\s*:|\[[^\]=^$*]*+[\^$*]=|unicode-range/i';
+    // ]= behind it, and past the PCRE limit preg_match() returns false and the whole block would pass.
+    // The run also takes *| (the any-namespace prefix), since [*|value^= matches the same attribute
+    private const CSS_FORBIDDEN = '/\\\\|@import|@charset|image\(|image-set\(|src\(|expression\(|-moz-binding|(?<![a-z0-9-])behavior\s*:|\[(?:[^\]=^$*]|\*\|)*+[\^$*]=|unicode-range/i';
 
     // a backslash inside a quoted url() argument: an escape there still spells a scheme, url("\6a avascript:")
     private const CSS_URL_ESCAPE = '/url\(\s*+["\'][^"\')\\\\]*+\\\\/i';

