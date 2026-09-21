@@ -205,10 +205,9 @@ final class HtmlValidator
     /** Invalid UTF-8 and control characters are refused before tokenizing, and nothing else is checked when they are */
     private function bytesAllowTokenizing(string $html): bool
     {
-        preg_match(self::UTF8_PREFIX, $html, $match);
-        $validLength = strlen($match[0]);
-        if ($validLength < strlen($html)) {
-            $bad = substr($html, $validLength, 16);   // a fixed cut: the bytes are not UTF-8, so excerpt() cannot count characters
+        if (!preg_match('//u', $html)) {   // PCRE's own UTF-8 check: a plain loop with no limit to reach, whatever the size
+            $validLength = self::validUtf8Length($html);
+            $bad         = substr($html, $validLength, 16);   // a fixed cut: the bytes are not UTF-8, so excerpt() cannot count characters
             $this->fail('not-utf8', $bad . (strlen($html) - $validLength > 16 ? '...' : ''));
             return false;
         }
@@ -217,6 +216,16 @@ final class HtmlValidator
             return false;
         }
         return true;
+    }
+
+    /** Bytes of well-formed UTF-8 before the first bad one, for content the //u check refused */
+    private static function validUtf8Length(string $html): int
+    {
+        $length = 0;
+        while (preg_match(self::UTF8_PREFIX, substr($html, $length, 65536), $match) && $match[0] !== '') {   // 64 KB at a time: over a megabyte at once the interpreter reaches pcre.backtrack_limit
+            $length += strlen($match[0]);
+        }
+        return $length;
     }
 
     private function walk(): void
@@ -292,8 +301,9 @@ final class HtmlValidator
             . '(?:' . $urlNames . ')="' . $url . '"'
             . '|(?!on|(?:' . $refusedNames . ')=)[a-z][a-z0-9-]*+="' . $value . '"';
         // text up to a <, a < that starts nothing (text too), an end tag, or a listed element's start tag with
-        // space-separated attributes; as many of those as follow
-        return self::$knownSafe[$styles] = '~(?:[^<]++|<(?![!/?a-z])|</[a-z][a-z0-9]*+>|<(?:' . implode('|', self::ELEMENTS) . ')(?:' . $space . '++(?:' . $attribute . '))*+' . $space . '*+/?>)++~Ai';
+        // space-separated attributes; as many of those as follow. The lone < needs its next byte in view: the tokenizer
+        // may run this over a window of the input, and a < on the window's edge could be the start of <script>
+        return self::$knownSafe[$styles] = '~(?:[^<]++|<(?=[^!/?a-z])|</[a-z][a-z0-9]*+>|<(?:' . implode('|', self::ELEMENTS) . ')(?:' . $space . '++(?:' . $attribute . '))*+' . $space . '*+/?>)++~Ai';
     }
 
     //endregion

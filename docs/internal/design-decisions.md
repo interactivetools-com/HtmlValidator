@@ -182,12 +182,28 @@ the 1 MB tag-dense shape in 2.3 ms against 46.3 ms, and the hostile megabyte of 
 of a check on clean content is the byte checks and one regex match. Building the regex costs
 about 1 µs, a tenth of a 1 KB check, so it is built once per value of `$allowStyles`.
 
-Past the PCRE limits `preg_match()` returns false: with `pcre.jit=0`, a megabyte of dense
-tags reaches `pcre.backtrack_limit`, since the interpreter counts every group iteration. The
-tokenizer then turns the skip off for the rest of that run instead of paying the limit again
-at every token, and the content is tokenized as before. A bounded repeat (`{1,1000}+`) to
-keep each match under the limit does not compile: PCRE copies the group once per repetition
-and refuses at 64 KB.
+Past `pcre.backtrack_limit` `preg_match()` returns false, and one call over the whole input
+gets there on big content. The JIT charges about one unit per skipped tag, so a run of
+3-byte tags (`<b>`) reaches the limit at 1 MB. The interpreter (`pcre.jit=0`) charges one
+unit per element name it tries, so the same run reaches it at 256 KB, and a run of `<u>` or
+`<wbr>`, late in the list, at 32 to 64 KB. After a false the tokenizer runs the regex over
+64 KB windows of the input: enough tags per call to keep the speed, sixteen times too few to
+reach the limit with the JIT. A windowed call that finds nothing to skip ends the windows, so
+content the regex cannot skip (unquoted values, custom elements) never pays for the copies.
+A windowed call that reaches the limit anyway (the interpreter on late-named tags) turns the
+skip off for the rest of that run, as before. A window can end between `<` and a tag name,
+so the lone-`<` branch is `<(?=[^!/?a-z])`, a positive lookahead: a `<` with nothing in view
+after it is not text, or `<script>` on a window's edge would pass. FastPathTest pins that.
+
+Measured 2026-09-21 on ovh2 (PHP 8.1 and 8.5 give the same thresholds): 8 MB of dense tags
+checks in 23 ms against 1.3 s with the skip dropped. Rejected on the way: a bounded repeat
+(`{1,40}+` already fails to compile: PCRE copies the group per repetition and refuses at
+64 KB); a subroutine call in a bounded repeat (`(?&i){0,N}+` exhausts the JIT stack at
+N=2000 on any input, and at N=500 is 1.3 to 5x slower than a window); windows from the first
+call (a copy per call costs nothing on content the regex skips and 10x on content it cannot);
+a first-letter trie for the element names (same acceptance, 2 to 4x cheaper on the
+interpreter for late names, no change with the JIT; worth it only if hosts without the JIT
+matter).
 
 Rejected: trying the skip only at "probably safe" spots (a heuristic is a second decision
 maker; the regex is exact or it is nothing); the micro-optimizations measured on the way

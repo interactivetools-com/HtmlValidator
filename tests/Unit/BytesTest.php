@@ -54,6 +54,12 @@ final class BytesTest extends HtmlValidatorTestCase
         ];
     }
 
+    /** The prefix pattern over the whole string reaches pcre.backtrack_limit at a megabyte without the JIT, and check() threw a TypeError */
+    public function testInvalidUtf8AfterMegabytesOfValidText(): void
+    {
+        $this->assertRejects('<p>' . str_repeat('a', 2097152) . "\xFF</p>", 'not-utf8', '\377</p>');
+    }
+
     public function testInvalidUtf8StopsEveryOtherCheck(): void
     {
         $result = HtmlValidator::check("<script>\xFF</script>");

@@ -140,7 +140,9 @@ your own, because a check for it would refuse ordinary content for no gain in sa
 - **`id` and `name` clobbering.** An `<img name="submit">` can shadow `form.submit` for a
   page script that reads it. Both attributes pass.
 - **Length or sense.** Blank, enormous, offensive, or another site's text all pass. Cap the
-  size before the check.
+  size before the check. A check's time grows with the size of the content and never faster,
+  so the size cap is also a cap on what a check can cost. The hostile inputs table in
+  [benchmarks/results.md](benchmarks/results.md) shows what a megabyte of the worst shapes takes.
 
 ## When You Might Not Want HtmlValidator
 

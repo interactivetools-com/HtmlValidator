@@ -85,13 +85,19 @@ final class Tokenizer
     private int             $pos          = 0;
     private int             $rawTextStart = 0;      // where the open raw-text element's start tag began
     private ?Token          $unclosed     = null;   // set when the input ends inside markup, yielded last
+    private int             $skipWindow   = 0;      // bytes the skip regex sees per call: the whole input, or SKIP_WINDOW after a PCRE limit
+
+    /** After a PCRE limit the skip regex runs over this many bytes at a time: enough tags per call to keep the speed, too few to reach the limit again */
+    private const SKIP_WINDOW = 65536;
 
     /**
      * @param string  $html             the document or fragment; must be valid UTF-8
      * @param bool    $switchOnElements read raw-text and RCDATA element content as text (what a browser does)
      * @param string  $state            state to start in, one of the STATE_ constants
      * @param string  $lastStartTag     with STATE_RCDATA or STATE_RAWTEXT, the element whose end tag returns to data
-     * @param ?string $skip             an anchored regex (the A modifier); in the data state whatever it matches is stepped over without producing tokens
+     * @param ?string $skip             an anchored regex (the A modifier); in the data state whatever it matches is stepped over without producing
+     *                                  tokens. After a PCRE limit it runs over SKIP_WINDOW bytes at a time, so it must not accept the last byte of
+     *                                  its subject on the strength of nothing following it: a window can end anywhere, even between < and a tag name
      */
     public function __construct(
         string $html,
@@ -119,14 +125,21 @@ final class Tokenizer
             $pos = $this->pos;
 
             if ($this->skip !== null) {
-                $skipped = preg_match($this->skip, $html, $m, 0, $pos);
+                $skipped = $this->skipWindow === 0
+                    ? preg_match($this->skip, $html, $m, 0, $pos)
+                    : preg_match($this->skip, substr($html, $pos, $this->skipWindow), $m);
                 if ($skipped === 1) {
                     $this->pos = $pos + strlen($m[0]);
                     continue;
                 }
-                if ($skipped === false) {
-                    $this->skip = null;   // past a PCRE limit; trying again at every token would pay that limit each time
+                if ($skipped === false && $this->skipWindow === 0) {
+                    $this->skipWindow = self::SKIP_WINDOW;   // one call over megabytes of tags reaches pcre.backtrack_limit; a window at a time does not
+                    continue;
                 }
+                if ($skipped === false) {
+                    $this->skip = null;   // a window reached the limit too (the interpreter on tags late in the element list); trying again at every token would pay it each time
+                }
+                $this->skipWindow = 0;   // nothing to skip here; whole-input calls copy nothing, so content the regex cannot skip never pays for windows
             }
 
             // text up to the next <

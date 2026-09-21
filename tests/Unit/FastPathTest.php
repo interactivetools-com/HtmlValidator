@@ -122,6 +122,22 @@ final class FastPathTest extends HtmlValidatorTestCase
         $this->assertCount(5, self::tokens($html, null));
     }
 
+    /**
+     * Past the limit the regex runs over 64 KB windows. A < on a window's last byte is not text, whatever the window
+     * shows after it: with </b> tags the windows align, so the text puts the < of <script> exactly on an edge
+     */
+    public function testATagOnAWindowEdgeIsNotSkipped(): void
+    {
+        $limit = ini_set('pcre.backtrack_limit', '1000000');   // the default, so the run of end tags reaches it with the JIT on or off
+        try {
+            $html   = str_repeat('</b>', 16384 * 96) . str_repeat('x', 65535) . '<script>alert(1)</script>';   // 96 full windows, then a window of text ending on <
+            $result = HtmlValidator::check($html);
+        } finally {
+            ini_set('pcre.backtrack_limit', $limit);
+        }
+        $this->assertSame(['element-not-allowed'], array_map(fn(Violation $violation): string => $violation->code, $result->errors));
+    }
+
     //endregion
     //region Near Misses
 
