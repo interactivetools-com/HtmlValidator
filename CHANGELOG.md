@@ -27,6 +27,10 @@ rejects anything that could run script in the page it is printed into, with a `R
   `$allowEmbeds` (on) with `$iframeHosts` for the `<iframe>` hosts that pass.
 - **Unclosed markup** (`<img src="`, `<!-- x`, `<style>` with no end tag) is refused, since a
   fragment printed into a page keeps reading the page as part of it.
+- **A `<` inside raw text is refused** (`less-than-in-text`): the content of `<style>`, `<iframe>`
+  and `<textarea>`, and comments that are not `<!-- -->`, are text to a browser but tags to
+  `strip_tags()` with an allow list or an HTML4-era parser, so a fragment that passed the check
+  stays safe through them.
 - **Byte checks**: invalid UTF-8 and C0 control characters are refused before tokenizing.
 - **`HtmlValidator::rules()`** returns the rule tables and current switch values for
   settings pages and docs. `Violation::TEMPLATES` holds every message for translation.

@@ -83,6 +83,7 @@ final class EmbedsTest extends HtmlValidatorTestCase
 
     public function testIframeContentIsRawText(): void
     {
-        $this->assertAccepts('<iframe src="https://www.youtube.com/embed/x"><script>alert(1)</script></iframe>');   // text to a browser, never a script tag
+        $html = '<iframe src="https://www.youtube.com/embed/x"><script>alert(1)</script></iframe>';
+        $this->assertRejects($html, 'less-than-in-text', '<script>alert(1)</script>');   // text to a browser, never a script tag; the < is refused on its own
     }
 }

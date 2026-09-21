@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Itools\HtmlValidator;
 
 // import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
-use function addcslashes, array_diff, array_map, array_values, count, implode, in_array, preg_match, preg_match_all, preg_quote, preg_replace, str_replace, str_starts_with, strlen, strtolower, substr, trim;
+use function addcslashes, array_diff, array_map, array_values, count, implode, in_array, preg_match, preg_match_all, preg_quote, preg_replace, str_replace, str_starts_with, strlen, strpos, strtolower, substr, trim;
 
 use const PREG_OFFSET_CAPTURE;
 
@@ -42,8 +42,8 @@ final class HtmlValidator
     /**
      * Elements that pass. The HTML Standard's element index, minus script and plugin elements
      * (script, noscript, template, svg, math, object, embed, applet), page-level elements
-     * (html, head, body, title, meta, base, link, frameset, frame), and the elements that switch
-     * the tokenizer into a mode a validator cannot follow (plaintext, xmp, noembed, noframes).
+     * (html, head, body, title, meta, base, link, frameset, frame), and the elements whose content
+     * is text to a browser and has no use in content (plaintext, xmp, noembed, noframes).
      * Includes the obsolete presentational elements old content still holds (font, center,
      * strike, big, tt, marquee and friends), since browsers render them without script.
      * style, iframe and the form elements are not here: they pass by their switch ($allowStyles,
@@ -233,26 +233,46 @@ final class HtmlValidator
 
     private function walk(): void
     {
-        $inStyle = false;
+        $rawText = '';
         foreach ((new Tokenizer($this->html, skip: self::$fastPath ? self::knownSafePattern() : null))->tokens() as $token) {
             if (count($this->errors) >= self::$maxErrors) {
                 return;
             }
             if ($token->type === Token::TEXT) {
-                if ($inStyle) {
-                    $this->checkCss($token->data);
+                if ($rawText !== '') {
+                    $this->checkNoLessThan($token->start, $token->end);
+                    if ($rawText === 'style') {
+                        $this->checkCss($token->data);
+                    }
                 }
                 continue;
             }
-            $inStyle = false;
+            $rawText = '';
             if ($token->type === Token::START_TAG) {
                 $this->checkStartTag($token);
-                $inStyle = $token->name === 'style';
+                $rawText = in_array($token->name, ['style', 'iframe', 'textarea'], true) ? $token->name : '';   // the allowed elements whose content is text to the end tag
+            } elseif ($token->type === Token::COMMENT) {
+                if (substr($this->html, $token->start, 4) !== '<!--') {   // <?php ...>, <!x ...> and </ x>: comments to a browser, ending at the first >
+                    $this->checkNoLessThan($token->start + 2, $token->end);
+                }
             } elseif ($token->type === Token::DOCTYPE) {
                 $this->fail('element-not-allowed', self::excerpt($this->source($token)));
             } elseif ($token->type === Token::UNCLOSED) {
                 $this->fail('unclosed-markup', self::excerpt($this->source($token)));   // the page this is printed into would be read as part of it
             }
+        }
+    }
+
+    /**
+     * Text a browser never reads as markup (raw-text content, a comment that is not <!-- -->) is markup to a
+     * parser without those rules: strip_tags() with an allow list, or an HTML4-era DOM. So a < is refused there.
+     * The bytes as written are checked, so &lt; in a textarea passes
+     */
+    private function checkNoLessThan(int $from, int $end): void
+    {
+        $lessThan = strpos($this->html, '<', $from);
+        if ($lessThan !== false && $lessThan < $end) {
+            $this->fail('less-than-in-text', self::excerpt(substr($this->html, $lessThan, $end - $lessThan)));
         }
     }
 

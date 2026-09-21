@@ -102,10 +102,11 @@ and everything that would let a payload hide from the check itself. Nothing else
 - **Anything that could hide a payload from the check.** The check reads the content the way a
   browser does, tag by tag, so it refuses every construct that a browser and another parser
   read differently: `<template>`, `<noscript>`, `<xmp>`, `<plaintext>`, `<svg>`, `<math>`,
-  bytes that are not UTF-8, control characters, and backslash escapes in CSS. A tag, comment
-  or `<style>` that the content ends inside of is refused for the same reason: on its own a
-  browser drops it, but printed into a page, the page up to the next quote becomes the URL
-  that gets fetched.
+  bytes that are not UTF-8, control characters, backslash escapes in CSS, and a `<` inside
+  `<style>`, `<iframe>`, `<textarea>` or a `<?...>` comment, which is text to a browser but a
+  tag to `strip_tags()` with an allow list. A tag, comment or `<style>` that the content ends
+  inside of is refused for the same reason: on its own a browser drops it, but printed into a
+  page, the page up to the next quote becomes the URL that gets fetched.
 - **CSS that reports what the page shows.** `[value^=` and the other substring selectors,
   `unicode-range`, `@import`, and `url()` to anything but `http:`, `https:` or a relative
   path. None of these run script. Each lets a stylesheet send what is on the page, a CSRF

@@ -21,10 +21,6 @@
                 "payload": "<img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAA...",
                 "reason": "data: on img src is refused with every data: URL; the plan keeps this open for HTML textboxes"
             },
-            "110b17f4bf1b": {
-                "payload": "<IMG STYLE=\"xss:expr/*XSS*/ession(alert('XSS'))\">",
-                "reason": "expression() with a CSS comment inside the name; IE-only, and no current browser has expression()"
-            },
             "f9a8fb9aac10": {
                 "payload": "<a></a style=\"xx:expr/**/ession(document.appendChild(document.createEl...",
                 "reason": "an end tag carries no attributes per HTML5, so the style is never read"
@@ -48,10 +44,6 @@
             "d1f207a810fd": {
                 "payload": "<A HREF=\"h tt p://6 6.000146.0x7.147/\">XSS</A>",
                 "reason": "tabs and newlines inside http:, which browsers strip; an obfuscated http link, no script"
-            },
-            "7fa83751a9f6": {
-                "payload": "<? echo('<SCR)'; echo('IPT>alert(\"XSS\")</SCRIPT>'); ?>",
-                "reason": "server-side PHP; in HTML <? starts a bogus comment and only text and an end tag remain"
             },
             "535ef5e233fe": {
                 "payload": "<!--#exec cmd=\"/bin/echo '<SCR'\"--><!--#exec cmd=\"/bin/echo 'IPT SRC=h...",
@@ -201,10 +193,6 @@
                 "payload": "</iframe></option>",
                 "reason": "stray end tags with no start tag; a browser drops them"
             },
-            "5fa269ee253d": {
-                "payload": "<b><style><style////><img src=x onerror=alert(1)></style>",
-                "reason": "the img is inside a style element, so text to every browser; only jQuery's old tag-completion re-parse saw a tag"
-            },
             "3661d4568c77": {
                 "payload": "<div id=\"26\">+ADw-html+AD4APA-body+AD4APA-div+AD4-top secret+ADw-/div+...",
                 "reason": "UTF-7 encoded markup; no current browser decodes UTF-7"
@@ -248,10 +236,6 @@
             "47d7632fb16c": {
                 "payload": "<div id=\"92\"><div style=\"background:url(http://foo.f/f oo/;color:red/*...",
                 "reason": "url() with a space and a comment inside; only old IE read past the space"
-            },
-            "91dc4c3190f4": {
-                "payload": "<div id=\"99\">XXX<style> *{color:gre/**/en !/**/important} /* IE 6-9 St...",
-                "reason": "CSS comment tricks that changed the parse in IE 6 to 9 only"
             },
             "b2753f743a5b": {
                 "payload": "<div id=\"102\"><img src=\"x` `<script>alert(102)</script>\"` `>//[\"'`-->]...",
@@ -445,10 +429,6 @@
                 "payload": "<a href=\"/share?content_type=1&title=This is a regular title&amp;conte...",
                 "reason": "a relative link with a query string; the sheet's example of a server-side injection point, not HTML that runs"
             },
-            "b84593c857a3": {
-                "payload": "<STYLE type=\"text/css\">BODY{background:url(\"<javascript:alert>('XSS')\"...",
-                "reason": "the url() string starts with <, so it is a relative path, not a scheme"
-            },
             "c106b549325e": {
                 "payload": "<?xml:namespace prefix=\"t\" ns=\"urn:schemas-microsoft-com:time\">",
                 "reason": "a processing instruction, which is a bogus comment in HTML; the IE HTML+TIME feature behind it is gone"
@@ -484,90 +464,6 @@
             "2af0c27ce925": {
                 "payload": "<span style=\"color:rgb(72, 72, 72); font-family:helveticaneue\"> <span>...",
                 "reason": "the sanitizer rewrote the styles; nothing in them runs"
-            },
-            "78e8bbf928a2": {
-                "payload": "<style><img src=x onerror=alert(1)></style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "d97a2775b3aa": {
-                "payload": "<style><<<b>img src=x onerror=alert(1)></style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "bc84b1580343": {
-                "payload": "<style>a{}<b>c{}</style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "9a1f1e1c29ee": {
-                "payload": "<style>a{}<b>x<b>y</b>z</b>c{}</style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "054564534c7e": {
-                "payload": "<style>a{}-<b>->b{}</style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "92621293b177": {
-                "payload": "<style>a{}--<b>>b{}</style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "ad74312e14dd": {
-                "payload": "<style>a<!<b>--x</style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "147efb0780db": {
-                "payload": "<style>a<!-<b>-x</style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "45d2aba14edc": {
-                "payload": "<style>a{}-<%%><b>->b{}</style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "77d45f2a1c09": {
-                "payload": "<style>a{}-<b><%%>->b{}</style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "04726b0aa428": {
-                "payload": "<style>a{}--><b>b{}</style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "7b7996d4dc25": {
-                "payload": "<style><!-- a<b> --> b </b></style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "c14435001ae7": {
-                "payload": "<style>a{}<b>x - y</b>c{}</style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "04997f22073c": {
-                "payload": "<style><b<svg> onmouseover=alert(1)>x</style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "87c738e1e0b9": {
-                "payload": "<style><b<b<svg> onmouseover=alert(1)>x</style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "f608a6a483c7": {
-                "payload": "<style></<b>noscript></style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "6dcbc1b6ac40": {
-                "payload": "<style>a{}<b<svg></style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "72a5d2faa5fe": {
-                "payload": "<style>a{}<3<svg>{}</style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "c3ae6e2ed3e8": {
-                "payload": "<style>a{}< b<svg>{}</style>",
-                "reason": "inside a style element everything up to </style> is text to the browser"
-            },
-            "49c341223119": {
-                "payload": "<p x></\"<p>y</p>",
-                "reason": "</\" starts a bogus comment that ends at the next >"
-            },
-            "110b17f4bf1b": {
-                "payload": "<IMG STYLE=\"xss:expr/*XSS*/ession(alert('XSS'))\">",
-                "reason": "expression() with a CSS comment inside the name; IE-only, and no current browser has expression()"
             },
             "199da04b31ce": {
                 "payload": "<a></a style=\"\"xx:expr/**/ession(document.appendChild(document.createE...",
@@ -644,6 +540,11 @@
                 "code": "unclosed-markup",
                 "detail": ".",
                 "reason": "markup that ends inside a tag is refused by design"
+            },
+            {
+                "code": "less-than-in-text",
+                "detail": "^<",
+                "reason": "a < inside <style> content is refused by design: text to a browser, a tag to strip_tags() with an allow list or to an HTML4-era DOM"
             }
         ]
     },
@@ -889,14 +790,6 @@
                 "payload": "<IMG SRC=&{javascript:alert(1);};>",
                 "reason": "&{...} JavaScript entities, Netscape 4 only"
             },
-            "ec864581a9c5": {
-                "payload": "<IMG STYLE=\"xss:expr/*XSS*/ession(javascript:alert(1))\">",
-                "reason": "expression() with a CSS comment inside the name; IE-only, and no current browser has expression()"
-            },
-            "110b17f4bf1b": {
-                "payload": "<IMG STYLE=\"xss:expr/*XSS*/ession(alert('XSS'))\">",
-                "reason": "expression() with a CSS comment inside the name; IE-only, and no current browser has expression()"
-            },
             "f288276d49de": {
                 "payload": "<STYLE TYPE=\"text/javascript\">javascript:alert(1);</STYLE>",
                 "reason": "a style element with a JavaScript type ran only in Netscape 4"
@@ -904,10 +797,6 @@
             "69ff580fabd4": {
                 "payload": "<STYLE TYPE=\"text/javascript\">alert('XSS');</STYLE>",
                 "reason": "a style element with a JavaScript type ran only in Netscape 4"
-            },
-            "5da9badf805b": {
-                "payload": "<? echo('<SCR)';echo('IPT>alert(\"XSS\")</SCRIPT>'); ?>",
-                "reason": "server-side PHP; in HTML <? starts a bogus comment and only text and an end tag remain"
             },
             "535ef5e233fe": {
                 "payload": "<!--#exec cmd=\"/bin/echo '<SCR'\"--><!--#exec cmd=\"/bin/echo 'IPT SRC=h...",

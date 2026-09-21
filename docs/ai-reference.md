@@ -166,6 +166,7 @@ Every code, its template, and what `detail` holds. Templates are `Violation::TEM
 | `url-scheme-not-allowed` | `The URL in %s must start with http:, https:, mailto:, tel:, a relative path, or #`             | the attribute name and its decoded value (`href="javascript:alert(1)"`)                                                                                   |
 | `iframe-host`            | `Embedding frames from %s is not allowed`                                                       | the `src` value with whitespace removed (`https://evil.example/x`), or `(no src)`                                                                         |
 | `css-not-allowed`        | `CSS containing %s is not allowed`                                                              | the banned token as matched (`expression(`, `\`, `[value^=`, `unicode-range`) or the `url()` with its target (`url(javascript:x)`), or the first 80 characters of a block past the PCRE limit (megabytes of `x*|` pairs inside one `[`) |
+| `less-than-in-text`      | `A < where a browser reads text, not tags: %s`                                                  | the text from that `<` to the end of the raw text or comment (`<img src=x onerror=alert(1)>`, `<b> c`)                                                    |
 | `unclosed-markup`        | `%s is not closed`                                                                              | the unfinished markup from where it opened to the end of the content (`<img src="//evil.example/?`, `<!-- hidden`, `<style>p { }`)                        |
 
 Details longer than 80 characters are cut at 80 and end with `...`. Newlines and other
@@ -178,8 +179,10 @@ control characters inside a detail are escaped (`\n`), so a detail is always one
 2. **Line endings.** CR and CRLF become LF, as the HTML parser's input step does. Details
    quote the content after this step.
 3. **Tokens.** The content is tokenized as HTML5 and every start tag is checked as it is
-   produced. Text, comments and end tags are never checked, with one exception: the text
-   inside `<style>` is checked as CSS. Runs of text and of tags whose every attribute a regex
+   produced. Text, comments and end tags are never checked, with two exceptions: the text
+   inside `<style>` is checked as CSS, and a `<` inside the text of `<style>`, `<iframe>` or
+   `<textarea>`, or inside a comment that is not `<!-- -->`, reports `less-than-in-text`. Runs
+   of text and of tags whose every attribute a regex
    proves safe (a listed element, double-quoted values with no character reference but
    `&amp;`, no scheme but a listed one, no CSS construct the CSS check reads) are stepped over
    without being tokenized; a run the regex does not match is tokenized and checked as usual,
@@ -225,8 +228,8 @@ Not allowed on purpose, so never add them to content to "fix" a rejection:
 - Script and script surfaces: `script`, `noscript`, `template`, `svg`, `math`.
 - Plugins: `object`, `embed`, `applet`.
 - Page-level: `html`, `head`, `body`, `title`, `meta`, `base`, `link`, `frameset`, `frame`.
-- Elements that switch the tokenizer into a mode a validator cannot follow: `plaintext`,
-  `xmp`, `noembed`, `noframes`.
+- Elements whose content is text to a browser and has no use in content: `plaintext`, `xmp`,
+  `noembed`, `noframes`.
 - Names with a namespace prefix (`o:p`, `v:shape`, `svg:rect`): the colon is not a custom
   element character, so they are unknown.
 
@@ -343,6 +346,19 @@ as written, which is stricter. A block the token scan cannot finish within the l
 (megabytes of `x*|` pairs inside one `[`) rejects with `css-not-allowed` and its first 80
 characters as the detail; it is never passed unchecked.
 
+## Rules: Text That Is Not Markup
+
+The content of `<style>`, `<iframe>` and `<textarea>`, and a comment that is not `<!-- -->`
+(`<?php ... ?>`, `<!x ...>`, `</ x>`, `<![CDATA[...]]>`, all ending at the first `>`), is
+text to a browser. A `<` inside any of them reports `less-than-in-text`, with the text from
+that `<` to the end of the block as the detail. The bytes as written are checked, so `&lt;`
+in a `<textarea>` passes, and so does `<?xml:namespace prefix = o />` from a Word paste.
+Ordinary text and everything inside `<!-- -->` are never checked.
+
+The reason is what happens after the check: `strip_tags()` with an allow list and HTML4-era
+DOM parsers read a tag inside these as live. Content that passed the check stays safe
+through them only if no tag can appear where the check saw text.
+
 ## Rules: Unclosed Markup
 
 If the content ends inside a start tag, an end tag, a quoted attribute value, a comment
@@ -379,7 +395,8 @@ tokenizer with element state switching off.
   `</>` is dropped.
 - `<style>`, `<iframe>`, `<noembed>`, `<noframes>`, `<xmp>`, `<noscript>` and `<script>` hold
   raw text up to their matching end tag (case-insensitive, the same name); `<title>` and
-  `<textarea>` the same but entity-decoded. A `<img onerror>` inside `<style>` is text.
+  `<textarea>` the same but entity-decoded. A `<img onerror>` inside `<style>` is text, and
+  its `<` is refused (see [Rules: Text That Is Not Markup](#rules-text-that-is-not-markup)).
   `<noscript>` is raw text because scripting is on in every browser a person uses.
 - `<svg>` and `<math>` content would be tokenized as HTML, not as foreign content; both
   elements are refused so this never matters.

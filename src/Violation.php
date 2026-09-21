@@ -37,6 +37,7 @@ final class Violation
         'url-scheme-not-allowed' => 'The URL in %s must start with http:, https:, mailto:, tel:, a relative path, or #',
         'iframe-host'            => 'Embedding frames from %s is not allowed',
         'css-not-allowed'        => 'CSS containing %s is not allowed',
+        'less-than-in-text'      => 'A < where a browser reads text, not tags: %s',
         'unclosed-markup'        => '%s is not closed',
     ];
 

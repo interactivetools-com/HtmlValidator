@@ -277,6 +277,33 @@ The tokenizer yields a last `UNCLOSED` token with the byte range; the validator 
 source. The html5lib test ignores that token. The rule took the corpus tally from 85 accepted
 payloads to 59, and PortSwigger's from 30 to 7.
 
+## A `<` in Raw Text Rejects
+
+The content of `<style>`, `<iframe>` and `<textarea>`, and a comment that is not `<!-- -->`,
+is text to a browser, and the check reads it the same way. A `<` inside any of them is refused
+anyway (`less-than-in-text`, settled 2026-09-21), because of what re-parses stored content
+after the check: `strip_tags()` with an allow list keeps a tag inside raw text as a tag, and
+an HTML4-era DOM (libxml2, so PHP's `DOMDocument` and HTMLPurifier) builds an element from
+it. Measured with `<img src=x onerror=alert(1)>` inside each construct:
+
+| Text to a browser                      | `strip_tags($html, '<img>')` | `DOMDocument` |
+|----------------------------------------|------------------------------|---------------|
+| `<style>` content                      | live                         | text          |
+| `<iframe>` and `<textarea>` content    | live                         | live          |
+| `<!-- -->` comment                     | stripped                     | comment       |
+| `<?...>` and `</ x...>` bogus comments | stripped                     | live          |
+
+HTMLPurifier strips the handler, so it never produces a live one; it does turn the text into
+markup (`<xmp>show <b>this</b></xmp>` comes out bold). Real comments need no rule, since
+every parser reads `<!-- -->` the same way. The cost on real content is zero: of the 700
+corpus and fixture files the check accepts with every switch on, the rule refuses 28, all
+from XSS payload collections and none from the editor, email and CMS sources.
+
+Rejected: allowing `<xmp>` for code samples. It is raw text like `<style>`, so with this rule
+it could hold nothing a `<pre>` cannot, and without the rule its content is exactly the
+`strip_tags()` case above. `<xmp>` with encoded content does not work either: raw text is
+never entity-decoded, so a browser shows `&lt;b&gt;` as written.
+
 ## CSS by Regex, Plus Two Selectors
 
 SvgValidator's `CSS_FORBIDDEN` regex, carried over: the backslash, `@import`, `@charset`,

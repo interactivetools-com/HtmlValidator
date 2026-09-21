@@ -44,7 +44,8 @@ final class CssTest extends HtmlValidatorTestCase
 
     public function testStyleElementContentIsCheckedAsCss(): void
     {
-        $this->assertAccepts('<style>@media print { p { display: none } } .a::before { content: "<script>" }</style>');
+        $this->assertAccepts('<style>@media print { p { display: none } } .a::before { content: "x" }</style>');
+        $this->assertRejects('<style>.a::before { content: "<script>" }</style>', 'less-than-in-text', '<script>" }');   // text to the tokenizer, never a script tag; the < is refused on its own
     }
 
     public function testTextAfterStyleIsNotCss(): void
