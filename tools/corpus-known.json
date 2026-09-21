@@ -1037,6 +1037,10 @@
             "d532580eb051": {
                 "payload": "<h1>INJECTX</h1>",
                 "reason": "a probe marker, not an attack"
+            },
+            "e4df0a2b4e39": {
+                "payload": "<STYLE>a{background:url('s1' 's2)}@import javascript:javascript:alert(1);');}</STYLE>",
+                "reason": "the @import is inside one CSS string, 's2)}@import ... ;', so no browser reads an at-rule there, and a url() holding two strings is invalid and dropped"
             }
         }
     },
