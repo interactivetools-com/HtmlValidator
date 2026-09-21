@@ -10,9 +10,9 @@ https://github.com/interactivetools-com/HtmlValidator/blob/main/docs/ai-referenc
 
 # HtmlValidator: Reject HTML That Could Run Script
 
-HtmlValidator checks rich-text HTML (WYSIWYG output, HTML fields, API input) and rejects it
-if it could run script, with a list of reasons that quote the tag or attribute at fault. It
-never rewrites the content: what you checked is what you store.
+HtmlValidator checks HTML from any source (an editor, a web form, an email, an import, an API)
+and rejects it if it could run script, with a list of reasons that quote the tag or attribute
+at fault. It never rewrites the content: what passes is what you store and what you show.
 
 ## Why Reject Instead of Clean
 
@@ -48,6 +48,11 @@ if (!$result->ok) {
 $statement = $mysqli->prepare('UPDATE articles SET body = ? WHERE id = ?');
 $statement->bind_param('si', $_POST['body'], $_POST['id']);
 $statement->execute();
+
+// show.php: content that arrived by import, email, a feed or an older save was never checked, so check it before printing
+$article = $mysqli->query('SELECT body FROM articles WHERE id = 1')->fetch_assoc();
+$result  = HtmlValidator::check($article['body']);
+echo $result->ok ? $article['body'] : '<p>This article is hidden until its HTML is fixed.</p>';
 ```
 
 The rest of the API:
@@ -74,26 +79,46 @@ HtmlValidator::$iframeHosts  = ['www.youtube.com', 'www.youtube-nocookie.com', '
 
 ## What It Blocks
 
-- **Script and event handlers.** `<script>`, every `on*` attribute, `srcdoc`, and `javascript:`
-  at the start of any attribute value, even one the browser ignores: a page script that copies
-  `data-href` into a link runs it.
-- **Elements a browser reads differently from the checker.** `<template>`, `<noscript>`,
-  `<xmp>`, `<plaintext>`, `<svg>` and `<math>` change how the browser reads what follows them,
-  so a payload inside can hide from a parser and still run. `<base>` changes where the page's
-  own relative `<script src>` paths load from. The rest of `<head>` (`<meta>`, `<link>`,
-  `<title>`) belongs to the page, not the content.
-- **Plugins and frames.** `<object>`, `<embed>`, `<applet>`, and any `<iframe>` whose `src` is
-  not on the host list.
-- **URL schemes.** On `href`, `src`, `action`, `poster` and the other attributes browsers
-  resolve as URLs, only `http:`, `https:`, `mailto:`, `tel:`, or no scheme at all. Entities and
-  whitespace inside the scheme are decoded first, the way a browser does it.
-- **CSS that ran script or leaks page data.** Backslash escapes, `@import`, `expression()`,
-  `-moz-binding`, `behavior:`, the substring attribute selectors (`[value^=` and friends) and
-  `unicode-range`; every `url()` must be `http:`, `https:` or relative.
-- **Unclosed markup.** A fragment that ends inside a tag, a comment or a `<style>` block. On
-  its own a browser drops it; printed into a page, the page up to the next quote becomes the
-  URL that gets fetched.
-- **Bytes that are not UTF-8, and control characters.**
+HTML reaches a stored field from many directions: a form a visitor filled in, an incoming
+email, an import, a feed or a supplier's data, a plugin's own query, a restored backup, an API
+call, and a staff member typing in the editor. The check does not know or care which. It takes
+a string and answers one question: printed into the body of a page on your own site, where the
+page's own scripts run, could this run script? That page may be public, or the admin page where
+staff read what a form or an email brought in. The attack is stored XSS: one `<script>` in a
+field runs for every visitor and every admin who opens the page, with their session.
+
+So there are two places to call it: at the save, to refuse the content with a reason, and on
+stored content before an editor or a page shows it, since most of those paths never pass
+through a save handler. The check refuses everything that runs script in a current browser,
+and everything that would let a payload hide from the check itself. Nothing else.
+
+- **Anything that runs script.** `<script>`, every `on*` attribute, `srcdoc`, and the plugin
+  elements `<object>`, `<embed>` and `<applet>`, which load a document that runs script of its
+  own. On the attributes browsers read as URLs (`href`, `src`, `action`, `poster` and the rest),
+  only `http:`, `https:`, `mailto:`, `tel:` or no scheme at all: `data:` is a whole document,
+  and an unknown scheme asks the visitor's machine to open whatever program is registered for
+  it. `javascript:` is refused at the start of every attribute value, even one the browser
+  ignores, because a page script that copies `data-href` into a link runs it.
+- **Anything that could hide a payload from the check.** The check reads the content the way a
+  browser does, tag by tag, so it refuses every construct that a browser and another parser
+  read differently: `<template>`, `<noscript>`, `<xmp>`, `<plaintext>`, `<svg>`, `<math>`,
+  bytes that are not UTF-8, control characters, and backslash escapes in CSS. A tag, comment
+  or `<style>` that the content ends inside of is refused for the same reason: on its own a
+  browser drops it, but printed into a page, the page up to the next quote becomes the URL
+  that gets fetched.
+- **CSS that reports what the page shows.** `[value^=` and the other substring selectors,
+  `unicode-range`, `@import`, and `url()` to anything but `http:`, `https:` or a relative
+  path. None of these run script. Each lets a stylesheet send what is on the page, a CSRF
+  token or a prefilled email address, to another host one character at a time. `expression()`,
+  `behavior:` and `-moz-binding` ran script in browsers nobody runs now; refusing them costs
+  nothing.
+- **Markup that belongs to the page, not the content.** `<html>`, `<head>`, `<body>`, `<meta>`,
+  `<link>`, `<title>` and `<base>`. A `<meta http-equiv="refresh">` in a field redirects every
+  visitor, a `<link rel="stylesheet">` loads CSS the check never saw, and `<base>` changes
+  where the page's own relative `<script src>` paths load from.
+- **Things a switch decides.** Forms are off by default: a form runs no script, but it can
+  imitate a login box. Frames are on, from the hosts in `$iframeHosts` only, because a frame
+  from anywhere can show anything. Styles are on, through the CSS check.
 
 The tokenizer passes the html5lib tokenizer test suite, so tags and attributes come out the
 way browsers read them. The rules are checked against the PortSwigger, html5sec, DOMPurify
@@ -101,6 +126,11 @@ and OWASP payload lists.
 
 ## What It Does Not Check
 
+Everything here is real, and none of it runs script. It is left to the page, or to a rule of
+your own, because a check for it would refuse ordinary content for no gain in safety.
+
+- **Where you print it.** An accepted fragment is safe as body content. Printed inside a
+  `<script>`, a `<style>`, an attribute value, or a `<textarea>`, any text is something else.
 - **Whether the HTML is valid.** An unclosed `<p>`, wrong nesting, and attributes nothing
   defines all pass; browsers render them and no script runs.
 - **Tracking.** An `<img>` on another host, a CSS `url()` to another host, and a `ping`
@@ -111,12 +141,10 @@ and OWASP payload lists.
   page script that reads it. Both attributes pass.
 - **Length or sense.** Blank, enormous, offensive, or another site's text all pass. Cap the
   size before the check.
-- **Where you print it.** An accepted fragment is safe as body content. Printed inside a
-  `<script>`, a `<style>`, an attribute value, or a `<textarea>`, any text is something else.
 
 ## When You Might Not Want HtmlValidator
 
-- **Public visitor content.** A bounced post with a reason works for staff who can fix it, and
+- **Visitor content you publish as HTML.** A bounced post with a reason works for staff who can fix it, and
   fails for a visitor who cannot. Forum posts and comments want a sanitizer such as
   [HTMLPurifier](http://htmlpurifier.org/), which returns trimmed output instead.
 - **Content with inline SVG, MathML, or `data:` images.** All three are refused with no

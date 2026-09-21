@@ -298,19 +298,22 @@ holds no script tag.
 ## Rules: CSS
 
 Applies to every `style` attribute value (entity-decoded) and to the text inside every
-`<style>` element (as written, no entity decoding, as in a browser). Two regular expressions,
-case-insensitive:
+`<style>` element (as written, no entity decoding, as in a browser). Comments and quoted
+strings are blanked first (see below), then two checks run, case-insensitive:
 
 1. Any of these tokens rejects with `css-not-allowed` and the token as the detail: a
    backslash `\`, `@import`, `@charset`, `image(`, `image-set(`, `src(`, `expression(`,
-   `-moz-binding`, `behavior:` (whitespace before the colon allowed), an attribute selector
-   using `^=`, `$=` or `*=` (`[value^=`, `[ value ^=`, `[value/**/^=`), and `unicode-range`.
+   `-moz-binding`, `behavior:` as a property name (whitespace before the colon allowed;
+   `scroll-behavior:` and `overscroll-behavior:` pass), an attribute selector using `^=`,
+   `$=` or `*=` (`[value^=`, `[ value ^=`), and `unicode-range`.
 2. Every `url(` is read up to the closing quote, `)` or whitespace, and its scheme, read as in
    [URLs](#rules-urls), must be absent or in `CSS_URL_SCHEMES`: `http`, `https`. So
    `url(images/bg.png)`, `url(/x.png)`, `url(//cdn.example/x.png)`, `url(#clip)` and
    `url("https://cdn.example/x.png")` pass; `url(javascript:x)`, `url(data:image/svg+xml,...)`,
    `url(vbscript:x)`, `url(mailto:x)` and `url(ftp://x)` reject, with the `url(` and its
-   target as the detail.
+   target as the detail. This check reads the text as written, not blanked, so a quoted
+   target is still checked. A backslash inside a quoted `url()` argument also rejects, since
+   an escape there still spells a scheme: `url('\6a avascript:x')` reports `url('\`.
 
 The backslash ban is what makes the regex enough: with no escape syntax there is no way to
 spell `expression(` or `url(` that the regex reads differently from a browser. The two
@@ -321,7 +324,13 @@ holds. Exact-match selectors (`[type=text]`, `[href="https://x/"]`), `~=`, `|=`,
 selectors, `@font-face` without `unicode-range`, `@media`, `@keyframes`, `:hover`,
 `!important`, `position: fixed` and vendor properties (`mso-*`) are not checked.
 
-Comments are not stripped: a banned token inside `/* */` still rejects.
+Blanking reads left to right as a CSS tokenizer does: a comment runs from `/*` to `*/` or
+the end of the text, a string from its quote to the matching quote or a bare newline, and
+`\` escapes the next character. So a backslash in a comment banner, `content: '\a0'` and a
+font name like `'\@Yu Mincho'` pass, and `content: '/*'` cannot hide what follows it. A
+comment is replaced by one space, so `[value/**/^=` still rejects and reports `[value ^=`.
+Past the PCRE backtrack limit (megabytes inside one comment or string) blanking is skipped
+and the text is checked as written, which is stricter.
 
 ## Rules: Unclosed Markup
 

