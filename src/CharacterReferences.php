@@ -9,6 +9,7 @@ use function ctype_alnum;
 use function hexdec;
 use function html_entity_decode;
 use function ltrim;
+use function min;
 use function preg_replace_callback;
 use function str_contains;
 use function strlen;
@@ -112,8 +113,9 @@ final class CharacterReferences
             }
         }
 
-        // legacy name with no semicolon: the longest one that starts the run wins (&notit; is &not + "it;")
-        for ($len = strlen($name); $len >= 2; $len--) {
+        // legacy name with no semicolon: the longest one that starts the run wins (&notit; is &not + "it;").
+        // Legacy names are two to six letters, so only the first six of a longer run are looked up
+        for ($len = min(strlen($name), 6); $len >= 2; $len--) {
             $legacy = self::LEGACY[substr($name, 0, $len)] ?? null;
             if ($legacy === null) {
                 continue;

@@ -24,6 +24,8 @@ final class CharacterReferencesTest extends TestCase
             'unknown name stays'         => ['&bogus; &x;', '&bogus; &x;'],
             'legacy without semicolon'   => ['&amp &copy &lt', "& \u{A9} <"],
             'legacy prefix of a longer run' => ['&notit; &noti', "\u{AC}it; \u{AC}i"],
+            'legacy prefix of a long run' => ['&copy' . str_repeat('x', 100000), "\u{A9}" . str_repeat('x', 100000)],
+            'long run with no legacy prefix stays' => ['&' . str_repeat('x', 100000), '&' . str_repeat('x', 100000)],
             'non-legacy without semicolon stays' => ['&colon &Tab', '&colon &Tab'],
             'decimal and hex'            => ['&#65; &#x41; &#X41;', 'A A A'],
             'missing semicolon on numeric still decodes' => ['&#65x &#x41x', 'Ax Ax'],
