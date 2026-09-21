@@ -161,6 +161,32 @@ final class CssTest extends HtmlValidatorTestCase
     }
 
     /**
+     * An unquoted url() runs to its closing paren, so /* or a quote inside it is part of the URL and
+     * does not start a comment or string that would hide the rules after it
+     */
+    #[DataProvider('unquotedUrlProvider')]
+    public function testUnquotedUrlsDoNotStartCommentsOrStrings(string $css, string $detail): void
+    {
+        $this->assertRejects("<style>$css</style>", 'css-not-allowed', $detail);
+    }
+
+    public static function unquotedUrlProvider(): array
+    {
+        return [
+            'comment start, closed later' => ['a{b:url(/*)}p[title^=a]{color:red}/* */', '[title^='],
+            'comment start, never closed' => ['a{b:url(/*)}p[title^=a]{color:red}', '[title^='],
+            'double quote'                => ['x{background:url(x");}p[title^="a"]{color:red}/*"*/', '[title^='],
+            'single quote'                => ["a{b:url(x')}[id^=m]{color:red}/*'*/", '[id^='],
+        ];
+    }
+
+    public function testQuotedUrlsAndStringsStillComeFirst(): void
+    {
+        $this->assertAccepts('<style>a{b:url("x") /* [t^=a] */}</style>');            // a quoted url is a string, so the comment after it is real
+        $this->assertAccepts('<style>p{content:"url(/*"; color: red} /* [t^=a] */</style>');   // the string starts before url(, so it wins
+    }
+
+    /**
      * A block past the PCRE limits is still checked: blanking gives up and the text is checked as
      * written, which is stricter, and no pattern backtracks across the block, since preg_match()
      * returns false past the limit and a false would let the whole block through.
