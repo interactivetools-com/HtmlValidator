@@ -53,6 +53,8 @@ use const PREG_OFFSET_CAPTURE;
  */
 final class Tokenizer
 {
+    //region States
+
     public const STATE_DATA      = 'data';
     public const STATE_RCDATA    = 'rcdata';       // <title>, <textarea>: text with character references
     public const STATE_RAWTEXT   = 'rawtext';      // <style>, <script>, <iframe>, ...: text as written
@@ -70,6 +72,9 @@ final class Tokenizer
         'xmp'      => self::STATE_RAWTEXT,
         'plaintext' => self::STATE_PLAINTEXT,
     ];
+
+    //endregion
+    //region Data State
 
     private readonly string $html;
     private readonly int    $length;
@@ -148,6 +153,9 @@ final class Tokenizer
         }
     }
 
+    //endregion
+    //region Raw Text States
+
     /** RCDATA, RAWTEXT and PLAINTEXT: text up to the matching end tag, or to the end of input */
     private function rawText(): Generator
     {
@@ -177,24 +185,8 @@ final class Tokenizer
         }
     }
 
-    /** At "<!": a comment, a doctype, or a bogus comment */
-    private function markupDeclaration(int $pos): Generator
-    {
-        $html = $this->html;
-        if (substr($html, $pos + 2, 2) === '--') {
-            yield $this->comment($pos);
-        } elseif (strncasecmp(substr($html, $pos + 2, 7), 'DOCTYPE', 7) === 0) {
-            $close     = strpos($html, '>', $pos + 9);
-            $this->pos = $close === false ? $this->length : $close + 1;
-            $data      = substr($html, $pos + 9, ($close === false ? $this->length : $close) - $pos - 9);
-            yield new Token(Token::DOCTYPE, '', [], false, $data, $pos, $this->pos);
-            if ($close === false) {
-                $this->unclosed = new Token(Token::UNCLOSED, '', [], false, '', $pos, $this->pos);
-            }
-        } else {
-            yield $this->bogusComment($pos, $pos + 2);          // includes <![CDATA[ outside foreign content
-        }
-    }
+    //endregion
+    //region Tag States
 
     /** At "</": an end tag, nothing (</>), text (</ at the end), or a bogus comment */
     private function endTagOpen(int $pos): Generator
@@ -214,45 +206,6 @@ final class Tokenizer
         } else {
             yield $this->bogusComment($pos, $pos + 2);
         }
-    }
-
-    /** Comment body from after "<!--" to "-->" or "--!>", with the empty forms <!--> and <!---> */
-    private function comment(int $pos): Token
-    {
-        $html      = $this->html;
-        $dataStart = $pos + 4;
-
-        if (($html[$dataStart] ?? '') === '>') {
-            $this->pos = $dataStart + 1;
-            return new Token(Token::COMMENT, '', [], false, '', $pos, $this->pos);
-        }
-        if (substr($html, $dataStart, 2) === '->') {
-            $this->pos = $dataStart + 2;
-            return new Token(Token::COMMENT, '', [], false, '', $pos, $this->pos);
-        }
-
-        preg_match('/(.*?)(--!?>|\z)/As', $html, $m, 0, $dataStart);
-        $this->pos = $dataStart + strlen($m[0]);
-        $data      = str_replace("\0", "\u{FFFD}", $m[1]);
-        if ($m[2] === '') {
-            $data           = preg_replace('/(?:--!|--|-)\z/', '', $data);    // at end of input a partial close (-, --, --!) is dropped
-            $this->unclosed = new Token(Token::UNCLOSED, '', [], false, '', $pos, $this->pos);
-        }
-        return new Token(Token::COMMENT, '', [], false, $data, $pos, $this->pos);
-    }
-
-    /** Everything from $dataStart to the next ">" is the comment */
-    private function bogusComment(int $pos, int $dataStart): Token
-    {
-        $html      = $this->html;
-        $close     = strpos($html, '>', $dataStart);
-        $dataEnd   = $close === false ? $this->length : $close;
-        $this->pos = $close === false ? $this->length : $close + 1;
-        $data      = str_replace("\0", "\u{FFFD}", substr($html, $dataStart, $dataEnd - $dataStart));
-        if ($close === false) {
-            $this->unclosed = new Token(Token::UNCLOSED, '', [], false, '', $pos, $this->pos);
-        }
-        return new Token(Token::COMMENT, '', [], false, $data, $pos, $this->pos);
     }
 
     /**
@@ -355,4 +308,67 @@ final class Tokenizer
         $this->unclosed = new Token(Token::UNCLOSED, $name, [], false, '', $pos, $this->length);
         return null;
     }
+
+    //endregion
+    //region Comment and Doctype States
+
+    /** At "<!": a comment, a doctype, or a bogus comment */
+    private function markupDeclaration(int $pos): Generator
+    {
+        $html = $this->html;
+        if (substr($html, $pos + 2, 2) === '--') {
+            yield $this->comment($pos);
+        } elseif (strncasecmp(substr($html, $pos + 2, 7), 'DOCTYPE', 7) === 0) {
+            $close     = strpos($html, '>', $pos + 9);
+            $this->pos = $close === false ? $this->length : $close + 1;
+            $data      = substr($html, $pos + 9, ($close === false ? $this->length : $close) - $pos - 9);
+            yield new Token(Token::DOCTYPE, '', [], false, $data, $pos, $this->pos);
+            if ($close === false) {
+                $this->unclosed = new Token(Token::UNCLOSED, '', [], false, '', $pos, $this->pos);
+            }
+        } else {
+            yield $this->bogusComment($pos, $pos + 2);          // includes <![CDATA[ outside foreign content
+        }
+    }
+
+    /** Comment body from after "<!--" to "-->" or "--!>", with the empty forms <!--> and <!---> */
+    private function comment(int $pos): Token
+    {
+        $html      = $this->html;
+        $dataStart = $pos + 4;
+
+        if (($html[$dataStart] ?? '') === '>') {
+            $this->pos = $dataStart + 1;
+            return new Token(Token::COMMENT, '', [], false, '', $pos, $this->pos);
+        }
+        if (substr($html, $dataStart, 2) === '->') {
+            $this->pos = $dataStart + 2;
+            return new Token(Token::COMMENT, '', [], false, '', $pos, $this->pos);
+        }
+
+        preg_match('/(.*?)(--!?>|\z)/As', $html, $m, 0, $dataStart);
+        $this->pos = $dataStart + strlen($m[0]);
+        $data      = str_replace("\0", "\u{FFFD}", $m[1]);
+        if ($m[2] === '') {
+            $data           = preg_replace('/(?:--!|--|-)\z/', '', $data);    // at end of input a partial close (-, --, --!) is dropped
+            $this->unclosed = new Token(Token::UNCLOSED, '', [], false, '', $pos, $this->pos);
+        }
+        return new Token(Token::COMMENT, '', [], false, $data, $pos, $this->pos);
+    }
+
+    /** Everything from $dataStart to the next ">" is the comment */
+    private function bogusComment(int $pos, int $dataStart): Token
+    {
+        $html      = $this->html;
+        $close     = strpos($html, '>', $dataStart);
+        $dataEnd   = $close === false ? $this->length : $close;
+        $this->pos = $close === false ? $this->length : $close + 1;
+        $data      = str_replace("\0", "\u{FFFD}", substr($html, $dataStart, $dataEnd - $dataStart));
+        if ($close === false) {
+            $this->unclosed = new Token(Token::UNCLOSED, '', [], false, '', $pos, $this->pos);
+        }
+        return new Token(Token::COMMENT, '', [], false, $data, $pos, $this->pos);
+    }
+
+    //endregion
 }

@@ -31,6 +31,8 @@ use const PREG_OFFSET_CAPTURE;
  */
 final class CharacterReferences
 {
+    //region Tables
+
     // The names browsers decode with no trailing semicolon, from the WHATWG entities.json
     private const LEGACY = [
         'AElig' => "\u{C6}", 'AMP' => "&", 'Aacute' => "\u{C1}", 'Acirc' => "\u{C2}", 'Agrave' => "\u{C0}",
@@ -71,6 +73,9 @@ final class CharacterReferences
     // &#hex or &#decimal or &name, each with an optional semicolon; a bare &# or &#x matches nothing and stays as text
     private const REFERENCE = '/&(?:#[xX]([0-9a-fA-F]+)|#([0-9]+)|([A-Za-z0-9]+));?/';
 
+    //endregion
+    //region Public API
+
     public static function decode(string $text, bool $inAttribute): string
     {
         if (!str_contains($text, '&')) {
@@ -83,6 +88,9 @@ final class CharacterReferences
             flags: PREG_OFFSET_CAPTURE,
         );
     }
+
+    //endregion
+    //region Decoding
 
     /** @param array<int, array{string, int}> $m match with offsets: [whole, hex, decimal, name] */
     private static function replace(array $m, string $text, bool $inAttribute): string
@@ -145,4 +153,6 @@ final class CharacterReferences
             default       => chr(0xF0 | $cp >> 18) . chr(0x80 | $cp >> 12 & 0x3F) . chr(0x80 | $cp >> 6 & 0x3F) . chr(0x80 | $cp & 0x3F),
         };
     }
+
+    //endregion
 }
