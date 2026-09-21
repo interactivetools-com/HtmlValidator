@@ -188,8 +188,8 @@ final class CssTest extends HtmlValidatorTestCase
 
     /**
      * A block past the PCRE limits is still checked: blanking gives up and the text is checked as
-     * written, which is stricter, and no pattern backtracks across the block, since preg_match()
-     * returns false past the limit and a false would let the whole block through.
+     * written, which is stricter, and the token scan takes a megabyte of letters after a [ in one
+     * step, so it never reaches the limit there
      */
     public function testMegabyteBlocksAreStillChecked(): void
     {
@@ -200,6 +200,36 @@ final class CssTest extends HtmlValidatorTestCase
         $padding = str_repeat('a', 1024 * 1024 + 512 * 1024);
         $this->assertRejects("<style>[$padding width: expression(1)</style>", 'css-not-allowed', 'expression(');   // a [ with no ]= after it
         $this->assertRejects("<p style=\"[$padding width: expression(1)\">x</p>", 'css-not-allowed', 'expression(');
+    }
+
+    /**
+     * A run of [ costs one step per bracket: the selector's name run stops at the next [ instead of
+     * scanning to the end of the block from every one (100K brackets took 3 s with the JIT, 64 s without)
+     */
+    public function testBracketRunsStayLinear(): void
+    {
+        $brackets = str_repeat('[', 100000);
+        $this->assertAccepts("<style>$brackets</style>");
+        $this->assertRejects("<style>{$brackets}p[title^=a]{color:red}</style>", 'css-not-allowed', '[title^=');
+        $this->assertRejects('<style>[a[title^=a]{color:red}</style>', 'css-not-allowed', '[title^=');   // the innermost [ is where the match starts
+    }
+
+    /**
+     * Past pcre.backtrack_limit preg_match() returns false, and a false refuses the block instead of
+     * passing it. Each x*| pair inside one [ is a step of the name run, so megabytes of them reach the
+     * limit on either engine; the test lowers the limit so a few thousand do
+     */
+    public function testABlockPastThePcreLimitIsRefused(): void
+    {
+        $css    = '[' . str_repeat('x*|', 5000) . 'title^=a]{color:red}';
+        $detail = '[' . str_repeat('x*|', 26) . 'x...';   // the first 80 characters of the block
+        ini_set('pcre.backtrack_limit', '1000');
+        try {
+            $this->assertRejects("<style>$css</style>", 'css-not-allowed', $detail);
+            $this->assertRejects("<p style=\"$css\">x</p>", 'css-not-allowed', $detail);
+        } finally {
+            ini_restore('pcre.backtrack_limit');
+        }
     }
 
     //endregion

@@ -165,7 +165,7 @@ Every code, its template, and what `detail` holds. Templates are `Violation::TEM
 | `attribute-not-allowed`  | `The %s attribute is not allowed`                                                               | `srcdoc`, or `formaction` while `$allowForms` is off, or `style` while `$allowStyles` is off                                                               |
 | `url-scheme-not-allowed` | `The URL in %s must start with http:, https:, mailto:, tel:, a relative path, or #`             | the attribute name and its decoded value (`href="javascript:alert(1)"`)                                                                                   |
 | `iframe-host`            | `Embedding frames from %s is not allowed`                                                       | the `src` value with whitespace removed (`https://evil.example/x`), or `(no src)`                                                                         |
-| `css-not-allowed`        | `CSS containing %s is not allowed`                                                              | the banned token as matched (`expression(`, `\`, `[value^=`, `unicode-range`) or the `url()` with its target (`url(javascript:x)`)                        |
+| `css-not-allowed`        | `CSS containing %s is not allowed`                                                              | the banned token as matched (`expression(`, `\`, `[value^=`, `unicode-range`) or the `url()` with its target (`url(javascript:x)`), or the first 80 characters of a block past the PCRE limit (megabytes of `x*|` pairs inside one `[`) |
 | `unclosed-markup`        | `%s is not closed`                                                                              | the unfinished markup from where it opened to the end of the content (`<img src="//evil.example/?`, `<!-- hidden`, `<style>p { }`)                        |
 
 Details longer than 80 characters are cut at 80 and end with `...`. Newlines and other
@@ -304,7 +304,7 @@ holds no script tag.
 
 Applies to every `style` attribute value (entity-decoded) and to the text inside every
 `<style>` element (as written, no entity decoding, as in a browser). Comments and quoted
-strings are blanked first (see below), then two checks run, case-insensitive:
+strings are removed first (see below), then two checks run, case-insensitive:
 
 1. Any of these tokens rejects with `css-not-allowed` and the token as the detail: a
    backslash `\`, `@import`, `@charset`, `image(`, `image-set(`, `src(`, `expression(`,
@@ -316,7 +316,7 @@ strings are blanked first (see below), then two checks run, case-insensitive:
    `url(images/bg.png)`, `url(/x.png)`, `url(//cdn.example/x.png)`, `url(#clip)` and
    `url("https://cdn.example/x.png")` pass; `url(javascript:x)`, `url(data:image/svg+xml,...)`,
    `url(vbscript:x)`, `url(mailto:x)` and `url(ftp://x)` reject, with the `url(` and its
-   target as the detail. This check reads the text as written, not blanked, so a quoted
+   target as the detail. This check reads the text as written, comments and strings included, so a quoted
    target is still checked. A backslash inside a quoted `url()` argument also rejects, since
    an escape there still spells a scheme: `url('\6a avascript:x')` reports `url('\`.
 
@@ -329,13 +329,19 @@ holds. Exact-match selectors (`[type=text]`, `[href="https://x/"]`), `~=`, `|=`,
 selectors, `@font-face` without `unicode-range`, `@media`, `@keyframes`, `:hover`,
 `!important`, `position: fixed` and vendor properties (`mso-*`) are not checked.
 
-Blanking reads left to right as a CSS tokenizer does: a comment runs from `/*` to `*/` or
-the end of the text, a string from its quote to the matching quote or a bare newline, and
-`\` escapes the next character. So a backslash in a comment banner, `content: '\a0'` and a
-font name like `'\@Yu Mincho'` pass, and `content: '/*'` cannot hide what follows it. A
-comment is replaced by one space, so `[value/**/^=` still rejects and reports `[value ^=`.
-Past the PCRE backtrack limit (megabytes inside one comment or string) blanking is skipped
-and the text is checked as written, which is stricter.
+Removal reads left to right as a CSS tokenizer does: a comment runs from `/*` to `*/` or
+the end of the text, and a string from its quote to the matching quote or a bare newline.
+Inside a string `\` escapes the next character, or up to six hex digits and one whitespace
+after them, newline included, so `"\a` and a newline do not end the string. An unquoted
+`url()` runs to its closing `)` before either is looked for, so a `/*` or a quote inside it
+is part of the URL, not the start of a comment or string. So a backslash in a comment
+banner, `content: '\a0'` and a font name like `'\@Yu Mincho'` pass, and `content: '/*'`
+cannot hide what follows it. A comment is dropped without leaving a space, as a browser
+drops it, so `[value/**/^=` still rejects and reports `[value^=`. Past the PCRE backtrack
+limit (megabytes inside one comment or string) removal is skipped and the text is checked
+as written, which is stricter. A block the token scan cannot finish within the limit
+(megabytes of `x*|` pairs inside one `[`) rejects with `css-not-allowed` and its first 80
+characters as the detail; it is never passed unchecked.
 
 ## Rules: Unclosed Markup
 

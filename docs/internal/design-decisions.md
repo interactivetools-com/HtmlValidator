@@ -301,7 +301,13 @@ fake a comment opener: the quote comes first and the string ends at its closing 
 things stay on the text as written: the `url()` scheme check, since the target is usually
 quoted, and a backslash inside a quoted `url()` argument, since an escape there still
 spells a scheme. Past the PCRE limits (megabytes inside one comment or string) blanking is
-skipped and the text is checked as written, which is stricter.
+skipped and the text is checked as written, which is stricter. The token regex can reach the
+limit too (megabytes of `x*|` pairs inside one `[`, on either engine); its false return
+refuses the block, since a false read as no match would pass it unchecked. The selector's
+name run stops at the next `[` and is possessive, so a run of brackets or of letters is one
+step. Before that (fixed 2026-09-21) 100K brackets took 3 s with the JIT and 64 s without,
+and a `[` followed by a megabyte of letters returned false without the JIT, so the block
+passed.
 
 Also settled 2026-09-20: `behavior:` matches only as a property name, so `scroll-behavior`
 and `overscroll-behavior` pass. The `*behavior` and `_behavior` hacks old IE read still

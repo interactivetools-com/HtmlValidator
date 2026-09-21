@@ -111,10 +111,10 @@ final class HtmlValidator
     // IE expression() and behavior: (as the property name, so scroll-behavior passes), Firefox -moz-binding,
     // and the two selectors that fire on page data so a url() can report it: [attr^=value] with ^= $= *=
     // and @font-face unicode-range.
-    // The selector's name run is possessive: a plain * backtracks across everything after a [ with no
-    // ]= behind it, and past the PCRE limit preg_match() returns false and the whole block would pass.
-    // The run also takes *| (the any-namespace prefix), since [*|value^= matches the same attribute
-    private const CSS_FORBIDDEN = '/\\\\|@import|@charset|image\(|image-set\(|src\(|expression\(|-moz-binding|(?<![a-z0-9-])behavior\s*:|\[(?:[^\]=^$*]|\*\|)*+[\^$*]=|unicode-range/i';
+    // The selector's name run stops at the next [ and is possessive, so a run of brackets or of letters costs
+    // one step; a plain * would backtrack across everything after a [ with no ]= behind it. The run also
+    // takes *| (the any-namespace prefix), since [*|value^= matches the same attribute
+    private const CSS_FORBIDDEN = '/\\\\|@import|@charset|image\(|image-set\(|src\(|expression\(|-moz-binding|(?<![a-z0-9-])behavior\s*:|\[(?:[^\]=^$*\[]++|\*\|)*+[\^$*]=|unicode-range/i';
 
     // a backslash inside a quoted url() argument: an escape there still spells a scheme, url("\6a avascript:")
     private const CSS_URL_ESCAPE = '/url\(\s*+["\'][^"\')\\\\]*+\\\\/i';
@@ -391,9 +391,12 @@ final class HtmlValidator
         // comments and strings are removed, not blanked to a space: the CSS tokenizer drops a comment without leaving
         // whitespace, so [*/**/|x^=a] reads [*|x^=a] to a browser, and joining the text around a string can only add a
         // match. Past the PCRE limits (megabytes inside one comment or string) the text is checked as written, which is stricter
-        $code = preg_replace(self::CSS_COMMENT_OR_STRING, '', $css) ?? $css;
-        if (preg_match(self::CSS_FORBIDDEN, $code, $match)) {
+        $code  = preg_replace(self::CSS_COMMENT_OR_STRING, '', $css) ?? $css;
+        $found = preg_match(self::CSS_FORBIDDEN, $code, $match);
+        if ($found === 1) {
             $this->fail('css-not-allowed', $match[0]);
+        } elseif ($found === false) {
+            $this->fail('css-not-allowed', self::excerpt($css));   // the PCRE limit (megabytes of x*| pairs inside one [): a block too big to check is refused, never passed
         }
         if (preg_match(self::CSS_URL_ESCAPE, $css, $match)) {
             $this->fail('css-not-allowed', self::excerpt($match[0]));
