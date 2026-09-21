@@ -373,7 +373,10 @@ final class HtmlValidator
 
     private function checkCss(string $css): void
     {
-        $code = preg_replace(self::CSS_COMMENT_OR_STRING, ' ', $css) ?? $css;   // past the PCRE limits (megabytes inside one comment or string) the text is checked as written, which is stricter
+        // comments and strings are removed, not blanked to a space: the CSS tokenizer drops a comment without leaving
+        // whitespace, so [*/**/|x^=a] reads [*|x^=a] to a browser, and joining the text around a string can only add a
+        // match. Past the PCRE limits (megabytes inside one comment or string) the text is checked as written, which is stricter
+        $code = preg_replace(self::CSS_COMMENT_OR_STRING, '', $css) ?? $css;
         if (preg_match(self::CSS_FORBIDDEN, $code, $match)) {
             $this->fail('css-not-allowed', $match[0]);
         }
