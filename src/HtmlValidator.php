@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Itools\HtmlValidator;
 
 // import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
-use function addcslashes, array_diff, array_map, array_values, count, implode, in_array, preg_match, preg_match_all, preg_quote, preg_replace, str_replace, str_starts_with, strlen, strtolower, substr;
+use function addcslashes, array_diff, array_map, array_values, count, implode, in_array, preg_match, preg_match_all, preg_quote, preg_replace, str_replace, str_starts_with, strlen, strtolower, substr, trim;
 
 use const PREG_OFFSET_CAPTURE;
 
@@ -373,7 +373,9 @@ final class HtmlValidator
     /** src must be an absolute http, https or protocol-relative URL on a listed host; no src is refused too */
     private function checkIframe(Token $token): void
     {
-        $src   = self::compact($token->attributes['src'] ?? '');
+        // what a browser strips from a URL before parsing: spaces and controls at the ends, tabs and newlines
+        // anywhere (a CR here came from &#13;). A space inside stays, so / /host/x is a path on this site, not a host
+        $src   = str_replace(["\t", "\n", "\r"], '', trim($token->attributes['src'] ?? '', "\x00..\x20"));
         $hosts = implode('|', array_map(fn(string $host) => preg_quote(strtolower($host), '/'), self::$iframeHosts));
         // http://, https:// or // then a listed host, then the end of the host part (a slash, ?, # or nothing)
         if ($hosts === '' || !preg_match("/^(?:https?:)?\/\/(?:$hosts)(?=[\/?#]|$)/i", $src)) {

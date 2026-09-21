@@ -34,7 +34,9 @@ final class EmbedsTest extends HtmlValidatorTestCase
             'host then query'    => ['https://www.youtube.com?v=x'],
             'host then fragment' => ['https://www.youtube.com#x'],
             'leading whitespace' => [' https://www.youtube.com/embed/x'],
+            'trailing space'     => ['https://www.youtube.com/embed/x '],
             'newline inside'     => ["https://www.you\ntube.com/embed/x"],   // browsers drop it, so the host they load is youtube
+            'tab inside'         => ["https://www.you\ttube.com/embed/x"],
         ];
     }
 
@@ -55,6 +57,8 @@ final class EmbedsTest extends HtmlValidatorTestCase
             'listed as path'      => ['<iframe src="https://evil.example/www.youtube.com/x"></iframe>', 'https://evil.example/www.youtube.com/x'],
             'backslash after'     => ['<iframe src="https://www.youtube.com\\@evil.example/x"></iframe>', 'https://www.youtube.com\\@evil.example/x'],
             'port'                => ['<iframe src="https://www.youtube.com:8080/x"></iframe>', 'https://www.youtube.com:8080/x'],
+            'space inside'        => ['<iframe src="/ /www.youtube.com/../../x.html"></iframe>', '/ /www.youtube.com/../../x.html'],   // a browser keeps the space, so this is a path on the same site
+            'space after host'    => ['<iframe src="https://www.youtube.com /embed/x"></iframe>', 'https://www.youtube.com /embed/x'],
             'relative'            => ['<iframe src="/uploads/page.html"></iframe>', '/uploads/page.html'],
             'no src'              => ['<iframe></iframe>', '(no src)'],
             'empty src'           => ['<iframe src=""></iframe>', '(no src)'],
