@@ -346,10 +346,15 @@ final class Tokenizer
             return new Token(Token::COMMENT, '', [], false, '', $pos, $this->pos);
         }
 
-        preg_match('/(.*?)(--!?>|\z)/As', $html, $m, 0, $dataStart);
-        $this->pos = $dataStart + strlen($m[0]);
-        $data      = str_replace("\0", "\u{FFFD}", $m[1]);
-        if ($m[2] === '') {
+        $close = strpos($html, '-->', $dataStart);
+        $bang  = strpos($html, '--!>', $dataStart);
+        if ($bang !== false && ($close === false || $bang < $close)) {    // --!> closes a comment too, and the earlier one wins
+            $close = $bang;
+        }
+        $dataEnd   = $close === false ? $this->length : $close;
+        $this->pos = $close === false ? $this->length : $close + ($close === $bang ? 4 : 3);
+        $data      = str_replace("\0", "\u{FFFD}", substr($html, $dataStart, $dataEnd - $dataStart));
+        if ($close === false) {
             $data           = preg_replace('/(?:--!|--|-)\z/', '', $data);    // at end of input a partial close (-, --, --!) is dropped
             $this->unclosed = new Token(Token::UNCLOSED, '', [], false, '', $pos, $this->pos);
         }

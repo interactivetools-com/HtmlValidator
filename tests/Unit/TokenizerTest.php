@@ -62,6 +62,21 @@ final class TokenizerTest extends TestCase
         $this->assertSame('img', $tokens[1]->name);
     }
 
+    /** The comment reader scans with strpos(), so a body past the PCRE limits parses like any other */
+    public function testMegabyteCommentsParse(): void
+    {
+        $body = str_repeat('lorem ipsum ', 175000);   // 2 MB
+        foreach (['-->', '--!>'] as $close) {
+            $tokens = $this->tokens("<!--$body$close<b>");
+            $this->assertSame([Token::COMMENT, Token::START_TAG], array_column($tokens, 'type'), $close);
+            $this->assertSame($body, $tokens[0]->data, $close);
+            $this->assertSame('b', $tokens[1]->name, $close);
+        }
+        $tokens = $this->tokens("<!--$body--");
+        $this->assertSame([Token::COMMENT, Token::UNCLOSED], array_column($tokens, 'type'));
+        $this->assertSame($body, $tokens[0]->data);
+    }
+
     public function testEmptyCommentForms(): void
     {
         foreach (['<!-->', '<!--->', '<!---->'] as $html) {
