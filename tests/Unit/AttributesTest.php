@@ -53,6 +53,13 @@ final class AttributesTest extends HtmlValidatorTestCase
     //endregion
     //region Refused Names
 
+    /** PHP stores a name of digits only as an int array key; the check runs on it all the same */
+    public function testAttributeNamedWithDigitsOnly(): void
+    {
+        $this->assertAccepts('<p 1="x">x</p>');
+        $this->assertRejects('<p 1="javascript:x">x</p>', 'url-scheme-not-allowed');
+    }
+
     public function testSrcdoc(): void
     {
         $violation = $this->assertRejects('<iframe src="https://www.youtube.com/embed/x" srcdoc="<script>alert(1)</script>"></iframe>', 'attribute-not-allowed', 'srcdoc');

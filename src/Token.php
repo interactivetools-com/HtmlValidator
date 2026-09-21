@@ -39,7 +39,7 @@ final class Token
     /**
      * @param int                   $type        one of the constants above
      * @param string                $name        tag name for START_TAG and END_TAG, the tag or raw-text element the input ended inside for UNCLOSED, '' otherwise
-     * @param array<string, string> $attributes  name => decoded value; the first of duplicate names wins (START_TAG only)
+     * @param array<string|int, string> $attributes  name => decoded value; the first of duplicate names wins (START_TAG only). A name of digits only is an int key, as PHP stores it
      * @param bool                  $selfClosing the tag ended with /> (START_TAG only)
      * @param string                $data        decoded text (TEXT), comment body (COMMENT), everything after <!DOCTYPE (DOCTYPE)
      * @param int                   $start       byte offset of the token's first character

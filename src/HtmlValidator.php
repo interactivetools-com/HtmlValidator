@@ -267,7 +267,7 @@ final class HtmlValidator
             $this->checkIframe($token);
         }
         foreach ($token->attributes as $attribute => $value) {
-            $this->checkAttribute($attribute, $value);
+            $this->checkAttribute((string)$attribute, $value);   // PHP stores a name of digits only, <p 1="x">, as an int key
         }
     }
 
