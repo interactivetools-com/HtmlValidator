@@ -141,15 +141,7 @@
                 "payload": "<IMG SRC=`javascript:alert(\"RSnake says, 'XSS'\")`>",
                 "reason": "backtick quoting; per HTML5 the unquoted value starts at the backtick and no handler attribute exists"
             }
-        },
-        "rejects": [
-            {
-                "code": "css-not-allowed",
-                "detail": "^behavior:",
-                "open": true,
-                "reason": "scroll-behavior and overscroll-behavior are ordinary CSS; the check matches the substring behavior:"
-            }
-        ]
+        }
     },
     "cerberus": {
         "rejects": [

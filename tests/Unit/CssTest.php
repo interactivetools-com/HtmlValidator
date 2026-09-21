@@ -37,6 +37,7 @@ final class CssTest extends HtmlValidatorTestCase
             'font family quotes'    => ["font-family: 'Open Sans', Arial"],
             'word paste'            => ['mso-bidi-font-weight: normal; tab-stops: 36.0pt'],
             'position fixed'        => ['position: fixed; top: 0; z-index: 9999'],   // a phishing overlay, not script: a known non-goal
+            'scroll-behavior'       => ['scroll-behavior: smooth; overscroll-behavior: contain'],
             'empty'                 => [''],
         ];
     }
@@ -69,6 +70,8 @@ final class CssTest extends HtmlValidatorTestCase
             'expression uppercase'  => ['width: EXPRESSION(alert(1))', 'EXPRESSION('],
             'behavior'              => ['behavior: url(x.htc)', 'behavior:'],
             'behavior with space'   => ['behavior : url(x.htc)', 'behavior :'],
+            'behavior star hack'    => ['*behavior: url(x.htc)', 'behavior:'],   // IE7 read *behavior as behavior
+            'behavior underscore'   => ['_behavior: url(x.htc)', 'behavior:'],   // and IE6 read _behavior
             'moz-binding'           => ['-moz-binding: url(x.xml#a)', '-moz-binding'],
             'import'                => ['@import url(https://example.com/x.css)', '@import'],
             'charset'               => ['@charset "UTF-7"', '@charset'],
