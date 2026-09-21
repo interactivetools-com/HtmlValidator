@@ -53,7 +53,7 @@ Three public classes in the `Itools\HtmlValidator` namespace. Nothing throws for
 a hostile or broken string is expected input and comes back as a rejected `Result`.
 
 ```php
-HtmlValidator::check(string $html): Result   // one pass over the content; memory is a copy of the string plus the current token
+HtmlValidator::check(string $html): Result   // time grows with the size of the content, nothing else; memory is a copy of the string plus the current token
 HtmlValidator::rules(): array                // the rule tables and the current switch values, for settings pages and debugging
 ```
 
@@ -480,7 +480,7 @@ a host list, see [Switches](#switches).
 |--------------------------------|---------------|---------------------|
 | Errors reported per check      | 50            | `$maxErrors`        |
 | Value length in `detail`       | 80 characters | `$maxDetailLength`  |
-| Content size                   | none          | one pass, no tree   |
+| Content size                   | none          | time grows with size, nothing else; no tree |
 | Nesting depth                  | none          | no tree             |
 
 Memory is a copy of the input (line endings normalized) plus the current token. A text run
