@@ -363,13 +363,11 @@ final class Tokenizer
             return new Token(Token::COMMENT, '', [], false, '', $pos, $this->pos);
         }
 
-        $close = strpos($html, '-->', $dataStart);
-        $bang  = strpos($html, '--!>', $dataStart);
-        if ($bang !== false && ($close === false || $bang < $close)) {    // --!> closes a comment too, and the earlier one wins
-            $close = $bang;
-        }
-        $dataEnd   = $close === false ? $this->length : $close;
-        $this->pos = $close === false ? $this->length : $close + ($close === $bang ? 4 : 3);
+        // --> or --!> closes the comment, whichever comes first; one forward scan, so many short comments stay linear
+        $found     = preg_match('/-->|--!>/', $html, $m, PREG_OFFSET_CAPTURE, $dataStart) === 1;
+        $close     = $found ? $m[0][1] : false;
+        $dataEnd   = $found ? $close : $this->length;
+        $this->pos = $found ? $close + strlen($m[0][0]) : $this->length;
         $data      = str_replace("\0", "\u{FFFD}", substr($html, $dataStart, $dataEnd - $dataStart));
         if ($close === false) {
             $data           = preg_replace('/(?:--!|--|-)\z/', '', $data);    // at end of input a partial close (-, --, --!) is dropped

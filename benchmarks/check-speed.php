@@ -484,6 +484,7 @@ function hostileInputs(): array
         '100,000 levels of nesting'            => str_repeat('<div>', 100000) . 'x' . str_repeat('</div>', 100000),
         '1 MB <style> block'                   => "<style>\n$style</style>",
         '1 MB chain of entities in one value'  => "<a title=\"$entities\">x</a>",
+        '1 MB of short comments'               => str_repeat('<!--x-->', 131072),
     ];
 }
 
