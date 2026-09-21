@@ -100,8 +100,10 @@ final class HtmlValidator
 
     // CSS comments and quoted strings, read left to right the way the CSS tokenizer does: a comment runs
     // to */ or the end of the text, a string to its closing quote or a bare newline, and \ escapes the
-    // next character. Nothing on CSS_FORBIDDEN can be spelled inside either one, so both are blanked first
-    private const CSS_COMMENT_OR_STRING = '/\/\*(?:[^*]++|\*(?!\/))*+(?:\*\/|\z)|"(?:[^"\\\\\n]++|\\\\.)*+(?:"|\n|\z)|\'(?:[^\'\\\\\n]++|\\\\.)*+(?:\'|\n|\z)/s';
+    // next character or up to six hex digits plus one whitespace after them (the escape eats that
+    // whitespace, so "\a<newline>" does not end the string). Nothing on CSS_FORBIDDEN can be spelled
+    // inside either one, so both are removed first
+    private const CSS_COMMENT_OR_STRING = '/\/\*(?:[^*]++|\*(?!\/))*+(?:\*\/|\z)|"(?:[^"\\\\\n]++|\\\\(?:[0-9a-fA-F]{1,6}[ \t\n]?|.))*+(?:"|\n|\z)|\'(?:[^\'\\\\\n]++|\\\\(?:[0-9a-fA-F]{1,6}[ \t\n]?|.))*+(?:\'|\n|\z)/s';
 
     // CSS that ran script in some browser, hides what the rest of the stylesheet says, or leaks page data:
     // backslash escapes (\6a avascript), @import and @charset, the image()/image-set()/src() URL functions,

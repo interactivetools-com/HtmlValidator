@@ -149,6 +149,18 @@ final class CssTest extends HtmlValidatorTestCase
     }
 
     /**
+     * A hex escape eats the one whitespace after it, newline included, so "\a<newline>" is still one
+     * string: the check ends it where the browser does, and what follows the closing quote stays live
+     */
+    public function testHexEscapeEatsTheNewlineAfterIt(): void
+    {
+        $this->assertRejects("<style>p{--x:\"\\a\n\"}p[title^=a]{color:red}</style>", 'css-not-allowed', '[title^=');   // the scan's marker
+        $this->assertRejects("<style>p{--x:'\\201c\n'}p[title^=a]{color:red}</style>", 'css-not-allowed', '[title^=');
+        $this->assertAccepts("<style>p { content: \"\\201C\n\" }</style>");
+        $this->assertAccepts("<style>p { content: \"\\abcdef0\" }</style>");   // six hex digits at most, the 0 is text
+    }
+
+    /**
      * A block past the PCRE limits is still checked: blanking gives up and the text is checked as
      * written, which is stricter, and no pattern backtracks across the block, since preg_match()
      * returns false past the limit and a false would let the whole block through.
