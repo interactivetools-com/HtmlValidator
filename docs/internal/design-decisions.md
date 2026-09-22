@@ -21,6 +21,8 @@ Contents:
 - [Iframes: A Host List](#iframes-a-host-list)
 - [Switches Are Static Properties](#switches-are-static-properties)
 - [`data:` Images Pass on `<img src>`](#data-images-pass-on-img-src)
+- [Word's Prefixed Elements Pass](#words-prefixed-elements-pass)
+- [Conditional Comments Are Checked Inside](#conditional-comments-are-checked-inside)
 - [No Remove Mode in 1.0](#no-remove-mode-in-10)
 - [Keeping Up With New HTML Features](#keeping-up-with-new-html-features)
 - [Precedent](#precedent)
@@ -231,9 +233,9 @@ the editor anyway. The input and output of that round trip are
 Elements are an allowlist: the HTML Living Standard's element index, minus everything that
 runs script, loads a plugin, belongs in `<head>`, or switches tokenizer state, plus the
 obsolete presentational elements browsers still render (`font`, `center`, `strike`, `big`,
-`tt`, `marquee` and friends), plus any hyphenated custom element. Unknown tags such as
-`<o:p>` are refused. A denylist fails the first time a browser adds an element; an allowlist
-fails the other way, which costs one line, not an XSS.
+`tt`, `marquee` and friends), plus any hyphenated custom element, plus Word's `o:`, `v:` and
+`w:` prefixed names. Every other unknown tag is refused. A denylist fails the first time a
+browser adds an element; an allowlist fails the other way, which costs one line, not an XSS.
 
 Attributes are patterns, not a per-element list: `on*` is refused by prefix, `srcdoc` by
 name, URL attributes by scheme, `style` by CSS check, and everything else passes. A
@@ -296,8 +298,10 @@ it. Measured with `<img src=x onerror=alert(1)>` inside each construct:
 | `<?...>` and `</ x...>` bogus comments | stripped                     | live          |
 
 HTMLPurifier strips the handler, so it never produces a live one; it does turn the text into
-markup (`<xmp>show <b>this</b></xmp>` comes out bold). Real comments need no rule, since
-every parser reads `<!-- -->` the same way. The cost on real content is zero: of the 700
+markup (`<xmp>show <b>this</b></xmp>` comes out bold). Real comments need no `<` rule, since
+every parser reads `<!-- -->` the same way; a conditional comment's inside is checked as
+markup instead, see
+[Conditional Comments Are Checked Inside](#conditional-comments-are-checked-inside). The cost on real content is zero: of the 700
 corpus and fixture files the check accepts with every switch on, the rule refuses 28, all
 from XSS payload collections and none from the editor, email and CMS sources.
 
@@ -399,6 +403,39 @@ linked `.svg` file in `<img src>` has always passed for the same reason, so the 
 Every other `data:` stays refused: `href` and `<iframe>` load it as a page, and `srcset`,
 `poster` and CSS `url()` have no paste that needs it. Word pastes through CKEditor keep their
 pictures as `data:` URLs, and about a quarter of the corpus's failed for the images alone.
+
+## Word's Prefixed Elements Pass
+
+`<o:p>`, `<v:shape>`, `<w:sdt>` and any other name under Word's three prefixes (`o:` Office,
+`v:` VML drawing, `w:` Word) pass as unknown elements, with the normal attribute rules. Word
+365 still writes `<o:p>` at the end of every paragraph it copies, so the tags are in most raw
+Word pastes, and a WYSIWYG user cannot see them to remove them. Checked 2026-09-21 in
+headless Chrome and in PHP 8.4's parser (Lexbor): each is an unknown element in the HTML
+namespace, `<v:imagedata src>` loads nothing, and their content parses as ordinary markup.
+The VML bugs of the 2000s were in IE's own renderer, and nothing renders VML now.
+
+Every other prefix stays refused. `t:` is the one with a history: IE 5.5 to 9 ran
+`<t:set attributeName="innerHTML" to="...">` after a `<?import namespace="t"
+implementation="#default#time2">`, so it is in every payload set. `<t:set>` rejects as an
+unknown name, and the `<?import>` instruction rejects too, see the next section: in that
+engine the prefix it bound was arbitrary, so `<o:set>` would have run the same way.
+
+## Conditional Comments Are Checked Inside
+
+`<!--[if mso]> ... <![endif]-->` is a comment to every browser since IE 10. Two engines
+still read the markup inside it: the IE engine embedded in old Windows programs (the
+WebBrowser control, in IE7 mode by default) and Outlook's Word engine, which is why every
+HTML email template uses `<!--[if mso]>` for Outlook-only tables and VML buttons. So the
+inside gets the same rules as the content around it, from the first `]>` to `<![endif]`: an
+email template's `<!--[if mso]><table>` passes, `<!--[if IE]><script>` rejects. In the
+corpus, script inside a conditional comment appears only in attack sets; the 6 email
+templates and 30 Word pastes that use them hold tables, VML and list markers.
+
+The same engine is why `<?import namespace="x" implementation="...">` rejects
+(`element-not-allowed`, as written). It bound a behavior such as HTML+TIME or VML to a
+prefix in IE 5.5 to 9, and the prefix was arbitrary, so with Word's prefixes allowed it would
+have made `<o:set>` run like `<t:set>`. The other way to bind one, the `behavior:` CSS
+property, is refused by the CSS check. No real content in the corpus has `<?import>`.
 
 ## No Remove Mode in 1.0
 

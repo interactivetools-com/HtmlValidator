@@ -179,9 +179,11 @@ control characters inside a detail are escaped (`\n`), so a detail is always one
 2. **Line endings.** CR and CRLF become LF, as the HTML parser's input step does. Details
    quote the content after this step.
 3. **Tokens.** The content is tokenized as HTML5 and every start tag is checked as it is
-   produced. Text, comments and end tags are never checked, with two exceptions: the text
-   inside `<style>` is checked as CSS, and a `<` inside the text of `<style>`, `<iframe>` or
-   `<textarea>`, or inside a comment that is not `<!-- -->`, reports `less-than-in-text`. Runs
+   produced. Text, comments and end tags are never checked, with three exceptions: the text
+   inside `<style>` is checked as CSS; a `<` inside the text of `<style>`, `<iframe>` or
+   `<textarea>`, or inside a comment that is not `<!-- -->`, reports `less-than-in-text`; and
+   the markup inside a `<!--[if ...]> ... <![endif]-->` conditional comment gets the same rules
+   as the content around it. Runs
    of text and of tags whose every attribute a regex
    proves safe (a listed element, double-quoted values with no character reference but
    `&amp;`, no scheme but a listed one, no CSS construct the CSS check reads) are stepped over
@@ -218,6 +220,8 @@ For every start tag, by its lowercased name:
 - In `FORM_ELEMENTS`: passes when `$allowForms` is set.
 - A custom element name (a letter, then letters, digits, `.` or `_`, then a hyphen, then any
   of those and hyphens: `my-widget`, `x-1.0_b-c`, `widget-`): passes.
+- A Word name (`o:`, `v:` or `w:`, then a letter, then letters and digits: `o:p`, `v:shape`,
+  `w:sdtPr`): passes.
 - Anything else: `element-not-allowed` with the tag as written. The tag's attributes are not
   checked, so `<script onload="x" src="javascript:1">` is one error.
 
@@ -230,12 +234,17 @@ Not allowed on purpose, so never add them to content to "fix" a rejection:
 - Page-level: `html`, `head`, `body`, `title`, `meta`, `base`, `link`, `frameset`, `frame`.
 - Elements whose content is text to a browser and has no use in content: `plaintext`, `xmp`,
   `noembed`, `noframes`.
-- Names with a namespace prefix (`o:p`, `v:shape`, `svg:rect`): the colon is not a custom
-  element character, so they are unknown.
+- Names with a namespace prefix (`t:set`, `svg:rect`, `xsl:template`): the colon is not a
+  custom element character, so they are unknown. The exception is Word's three prefixes:
+  `o:`, `v:` and `w:` (`o:p`, `v:shape`, `w:sdt`) pass with any name after the colon, as
+  unknown elements a browser does nothing with, and their attributes get the normal rules.
 
 End tags are never checked: `</script>` with no start tag is fine. Text is never checked:
-`&lt;script&gt;` is text to a browser and to the validator. Comments are never checked:
-`<!-- <script>alert(1)</script> -->` passes, and so does `<!--[if IE]>...<![endif]-->`.
+`&lt;script&gt;` is text to a browser and to the validator. Comments are not checked:
+`<!-- <script>alert(1)</script> -->` passes. The one exception is a conditional comment:
+the markup inside `<!--[if IE]> ... <![endif]-->` gets the same rules as the rest, see
+[Text That Is Not Markup](#rules-text-that-is-not-markup). A `<?import ...>` instruction,
+which bound a behavior to a prefix in IE 5.5 to 9, reports `element-not-allowed` as written.
 
 ## Rules: Attributes
 
@@ -355,7 +364,14 @@ The content of `<style>`, `<iframe>` and `<textarea>`, and a comment that is not
 text to a browser. A `<` inside any of them reports `less-than-in-text`, with the text from
 that `<` to the end of the block as the detail. The bytes as written are checked, so `&lt;`
 in a `<textarea>` passes, and so does `<?xml:namespace prefix = o />` from a Word paste.
-Ordinary text and everything inside `<!-- -->` are never checked.
+
+A conditional comment, `<!--[if mso]> ... <![endif]-->`, is a comment to every browser since
+IE 10, but the IE engine inside old Windows programs and Outlook's Word engine read the
+markup inside it. That markup gets the same rules as the content around it, from the first
+`]>` to `<![endif]`, or to the end of the comment when there is none: an email template's
+`<!--[if mso]><table>...</table><![endif]-->` passes, and
+`<!--[if IE]><script>alert(1)</script><![endif]-->` reports `element-not-allowed` with
+`<script>`. Ordinary text and everything else inside `<!-- -->` are never checked.
 
 The reason is what happens after the check: `strip_tags()` with an allow list and HTML4-era
 DOM parsers read a tag inside these as live. Content that passed the check stays safe

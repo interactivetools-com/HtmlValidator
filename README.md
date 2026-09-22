@@ -105,7 +105,9 @@ and everything that would let a payload hide from the check itself. Nothing else
   read differently: `<template>`, `<noscript>`, `<xmp>`, `<plaintext>`, `<svg>`, `<math>`,
   bytes that are not UTF-8, control characters, backslash escapes in CSS, and a `<` inside
   `<style>`, `<iframe>`, `<textarea>` or a `<?...>` comment, which is text to a browser but a
-  tag to `strip_tags()` with an allow list. A tag, comment or `<style>` that the content ends
+  tag to `strip_tags()` with an allow list. The markup inside a `<!--[if ...]>` conditional
+  comment gets the same rules as the rest, because the IE engine inside old Windows programs
+  and Outlook still read it. A tag, comment or `<style>` that the content ends
   inside of is refused for the same reason: on its own a browser drops it, but printed into a
   page, the page up to the next quote becomes the URL that gets fetched.
 - **CSS that reports what the page shows.** `[value^=` and the other substring selectors,

@@ -15,8 +15,8 @@ rejects anything that could run script in the page it is printed into, with a `R
 - **`HtmlValidator::check()`** returns a `Result` with `ok` and `errors`, one `Violation`
   per distinct problem, in document order, capped at 50. Nothing throws.
 - **Element allowlist**: the HTML Standard's element index plus the obsolete presentational
-  elements and hyphenated custom elements. Script, plugin, head-level and
-  tokenizer-switching elements are refused with no switch.
+  elements, hyphenated custom elements, and Word's `o:`, `v:` and `w:` prefixed names. Script,
+  plugin, head-level and tokenizer-switching elements are refused with no switch.
 - **Attribute patterns**: `on*` and `srcdoc` refused; `href`, `src` and the other URL
   attributes limited to `http:`, `https:`, `mailto:`, `tel:` or no scheme, plus
   `data:image/...` on `<img src>`; `javascript:` refused at the start of every attribute
@@ -32,6 +32,10 @@ rejects anything that could run script in the page it is printed into, with a `R
   and `<textarea>`, and comments that are not `<!-- -->`, are text to a browser but tags to
   `strip_tags()` with an allow list or an HTML4-era parser, so a fragment that passed the check
   stays safe through them.
+- **Old IE's markup**: the markup inside a `<!--[if ...]>` conditional comment gets the same
+  rules as the rest, for the IE engine inside old Windows programs and Outlook's Word engine,
+  so email templates' `<!--[if mso]>` tables pass and a script inside one rejects.
+  `<?import ...>`, which bound a behavior to a prefix in IE 5.5 to 9, is refused.
 - **Byte checks**: invalid UTF-8 and C0 control characters are refused before tokenizing.
 - **`HtmlValidator::rules()`** returns the rule tables and current switch values for
   settings pages and docs. `Violation::TEMPLATES` holds every message for translation.
