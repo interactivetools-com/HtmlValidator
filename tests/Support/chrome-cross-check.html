@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>cross-check</title>
+<!-- ChromeCrossCheckTest fills in the cases, runs this page in headless Chrome and reads the result out of the pre -->
+<script id="cases" type="application/json">__CASES__</script>
+<pre id="out">not run</pre>
+<script>
+window.onerror = (message, source, line) => {
+    document.getElementById('out').textContent = 'ERR ' + message + ' line ' + line;
+};
+const cases = JSON.parse(document.getElementById('cases').textContent);
+document.getElementById('cases').remove();   // so the dumped DOM is the result, not the input again
+const found = [];
+const walk = (root, name) => {
+    for (const element of root.querySelectorAll('*')) {
+        if (element.localName === 'script') {
+            found.push(name + ': <script>');
+        }
+        for (const attribute of element.attributes) {
+            if (/^on/i.test(attribute.name)) {
+                found.push(name + ': ' + attribute.name);
+            }
+            // the scheme as a browser reads it: ASCII whitespace and controls dropped first
+            if (/^javascript:/i.test(attribute.value.replace(/[\x00-\x20\x7f]/g, ''))) {
+                found.push(name + ': ' + attribute.name + '="' + attribute.value.slice(0, 60) + '"');
+            }
+        }
+        if (element.localName === 'template') {
+            walk(element.content, name);   // template content is a separate fragment, invisible to the walk above
+        }
+    }
+};
+for (const [name, html] of Object.entries(cases)) {
+    walk(new DOMParser().parseFromString(html, 'text/html'), name);   // scripting is off in a DOMParser document, so noscript content is markup too
+}
+document.getElementById('out').textContent = JSON.stringify({checked: Object.keys(cases).length, found});
+</script>
