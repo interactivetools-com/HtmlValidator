@@ -20,7 +20,7 @@ Contents:
 - [`<style>` Is Allowed](#style-is-allowed)
 - [Iframes: A Host List](#iframes-a-host-list)
 - [Switches Are Static Properties](#switches-are-static-properties)
-- [`data:` Images Reject](#data-images-reject)
+- [`data:` Images Pass on `<img src>`](#data-images-pass-on-img-src)
 - [No Remove Mode in 1.0](#no-remove-mode-in-10)
 - [Keeping Up With New HTML Features](#keeping-up-with-new-html-features)
 - [Precedent](#precedent)
@@ -386,12 +386,14 @@ Defaults: forms off (a fake login form is the one non-script attack a staff memb
 likely to try), styles on (Word pastes and email HTML), embeds on (video embeds are in nearly
 every site's content).
 
-## `data:` Images Reject
+## `data:` Images Pass on `<img src>`
 
-`data:image/...` on `<img src>` is refused with the rest of `data:`. An image cannot run
-script, but the editor already strips `data:` on save, so nothing saved through it has one,
-and allowing `data:image/svg+xml` would need the SVG checked. Revisit if HTML textboxes need
-inline images; the fix is an allowlist of image types, as SvgValidator does for `<image>`.
+`data:image/...` on `<img src>` passes, any image type, `svg+xml` included. A browser decodes
+an `img` resource as a picture and nothing else: no script, no external loads, no clicks. A
+linked `.svg` file in `<img src>` has always passed for the same reason, so the two agree.
+Every other `data:` stays refused: `href` and `<iframe>` load it as a page, and `srcset`,
+`poster` and CSS `url()` have no paste that needs it. Word pastes through CKEditor keep their
+pictures as `data:` URLs, and about a quarter of the corpus's failed for the images alone.
 
 ## No Remove Mode in 1.0
 

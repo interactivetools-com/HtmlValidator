@@ -97,8 +97,9 @@ and everything that would let a payload hide from the check itself. Nothing else
   own. On the attributes browsers read as URLs (`href`, `src`, `action`, `poster` and the rest),
   only `http:`, `https:`, `mailto:`, `tel:` or no scheme at all: `data:` is a whole document,
   and an unknown scheme asks the visitor's machine to open whatever program is registered for
-  it. `javascript:` is refused at the start of every attribute value, even one the browser
-  ignores, because a page script that copies `data-href` into a link runs it.
+  it. The one exception is `data:image/...` on `<img src>`, which a browser shows as a picture
+  and nothing else. `javascript:` is refused at the start of every attribute value, even one
+  the browser ignores, because a page script that copies `data-href` into a link runs it.
 - **Anything that could hide a payload from the check.** The check reads the content the way a
   browser does, tag by tag, so it refuses every construct that a browser and another parser
   read differently: `<template>`, `<noscript>`, `<xmp>`, `<plaintext>`, `<svg>`, `<math>`,
@@ -150,8 +151,8 @@ your own, because a check for it would refuse ordinary content for no gain in sa
 - **Visitor content you publish as HTML.** A bounced post with a reason works for staff who can fix it, and
   fails for a visitor who cannot. Forum posts and comments want a sanitizer such as
   [HTMLPurifier](http://htmlpurifier.org/), which returns trimmed output instead.
-- **Content with inline SVG, MathML, or `data:` images.** All three are refused with no
-  switch. Upload SVG as a file and check it with SvgValidator instead.
+- **Content with inline SVG or MathML.** Both are refused with no switch. Upload SVG as a
+  file, check it with SvgValidator, and link it from `<img src>`.
 - **A "clean it for me" button.** There is no output to hand back. Run a sanitizer for that
   and check what it returns.
 

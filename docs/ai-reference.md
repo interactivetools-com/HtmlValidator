@@ -271,8 +271,10 @@ and `&#106;avascript:` are `javascript:` too. A value with no scheme (a relative
 - On the attributes in `URL_ATTRIBUTES` (`href`, `src`, `action`, `formaction`, `poster`,
   `ping`, `srcset`, `cite`, `longdesc`, `background`), the scheme must be in `URL_SCHEMES`:
   `http`, `https`, `mailto`, `tel`. Case-insensitive. `data:`, `vbscript:`, `ftp:`, `file:`
-  and every other scheme reject with `url-scheme-not-allowed`, including `data:image/...` on
-  `<img src>`.
+  and every other scheme reject with `url-scheme-not-allowed`. One exception: `<img src>` also
+  accepts `data:image/...`, any image type, `svg+xml` included, because a browser decodes an
+  `img` resource as a picture and nothing else. `data:` on `srcset`, `poster` or `href`, in
+  an `<iframe>` or in CSS `url()` still rejects.
 - On every other attribute, only the schemes in `SCRIPT_SCHEMES` reject: `javascript`. A
   browser ignores `javascript:` in `title=` or `data-href=`, but a page script that copies the
   value into a link or into `location` runs it. `vbscript:` and `data:` pass there because

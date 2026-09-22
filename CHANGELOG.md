@@ -18,8 +18,9 @@ rejects anything that could run script in the page it is printed into, with a `R
   elements and hyphenated custom elements. Script, plugin, head-level and
   tokenizer-switching elements are refused with no switch.
 - **Attribute patterns**: `on*` and `srcdoc` refused; `href`, `src` and the other URL
-  attributes limited to `http:`, `https:`, `mailto:`, `tel:` or no scheme; `javascript:`
-  refused at the start of every attribute value; unknown attributes pass.
+  attributes limited to `http:`, `https:`, `mailto:`, `tel:` or no scheme, plus
+  `data:image/...` on `<img src>`; `javascript:` refused at the start of every attribute
+  value; unknown attributes pass.
 - **CSS check** on the `style` attribute and the `<style>` element: the constructs that ran
   script in some browser, `url()` limited to `http:`, `https:` or relative, and the two
   selectors that leak page data (`[attr^=]` and friends, `unicode-range`).
