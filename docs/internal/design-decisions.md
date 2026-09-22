@@ -152,9 +152,22 @@ Proof: the html5lib tokenizer test suite runs against the tokenizer with element
 off. Every case passes except the ones that need a parsed DOCTYPE, the script-data and CDATA
 states, and four inputs with lone surrogates.
 
-Rejected: `DOMDocument` and `DOM\HTMLDocument` (a tree, whole-document memory, and PHP 8.4
-for the HTML5 one); a regex over the raw string (CodeIgniter's `xss_clean` is the cautionary
-tale); Masterminds/html5-php (a full tree builder when only tokens are needed).
+Rejected, measured 2026-09-20:
+
+- `DOMDocument`: libxml2's HTML parser predates HTML5, so what it sees is not what a browser
+  sees, and it keeps a whole tree in memory.
+- `Dom\HTMLDocument` (PHP 8.4, Lexbor): a real HTML5 parser, but a tree only, with no
+  tokenizer or event API and no streaming, about 48 MB peak for 1 MB of input. A tree walk
+  misses `<template>` content and sees `<noscript>` parsed with scripting off, so both need
+  special cases. At best 2x faster than the check was before the fast path on dense markup,
+  so slower than the check is now, and it needs PHP 8.4.
+- masterminds/html5 2.11.0: MIT, PHP 7.4+, needs ext-dom, 28 files and 320 KB, with a
+  standalone tokenizer behind its `EventHandler` interface. Speed within 20% of ours either
+  way: a dependency the size of the library, for a tokenizer we already have.
+- A regex over the raw string: CodeIgniter's `xss_clean` is the cautionary tale.
+
+A second parser earns its place as a check on the first, not a replacement. That is the
+Chrome cross-check, with a real browser instead of a PHP library.
 
 ## The Fast Path
 
