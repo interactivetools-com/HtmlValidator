@@ -75,6 +75,7 @@ HtmlValidator::$allowForms   = false;   // <form>, <input>, <button> and the oth
 HtmlValidator::$allowStyles  = true;    // the style attribute and the <style> element, both checked for CSS that could run or leak
 HtmlValidator::$allowEmbeds  = true;    // <iframe> whose src points at a host in $iframeHosts
 HtmlValidator::$iframeHosts  = ['www.youtube.com', 'www.youtube-nocookie.com', 'player.vimeo.com', 'www.google.com'];
+HtmlValidator::$urlSchemes   = ['http', 'https', 'mailto', 'tel'];   // what a link may start with; add sms or an app link if your visitors' machines should open it
 ```
 
 ## What It Blocks

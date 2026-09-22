@@ -60,7 +60,8 @@ HtmlValidator::rules(): array                // the rule tables and the current 
 `rules()` returns an array with the keys `elements`, `formElements`, `attributesRefused`,
 `formAttributes`, `urlSchemes`, `scriptSchemes`, `cssUrlSchemes`, `urlAttributes`,
 `allowForms`, `allowStyles`, `allowEmbeds` and `iframeHosts`. See [Rule Tables](#rule-tables).
-The lists are constants; changing the returned array changes nothing.
+The keys are copies of the constants and the current switch values; changing the returned
+array changes nothing.
 
 ### Switches
 
@@ -71,6 +72,7 @@ HtmlValidator::$allowForms   = false;   // form elements (FORM_ELEMENTS) and for
 HtmlValidator::$allowStyles  = true;    // the style attribute and the <style> element pass, after the CSS check
 HtmlValidator::$allowEmbeds  = true;    // <iframe> passes when its src host is in $iframeHosts
 HtmlValidator::$iframeHosts  = ['www.youtube.com', 'www.youtube-nocookie.com', 'player.vimeo.com', 'www.google.com'];
+HtmlValidator::$urlSchemes   = ['http', 'https', 'mailto', 'tel'];   // schemes a URL attribute may start with
 HtmlValidator::$maxErrors       = 50;   // distinct errors reported per check
 HtmlValidator::$maxDetailLength = 80;   // characters of content quoted in a detail before "..."
 HtmlValidator::$fastPath        = true; // text and tags the rules can never refuse are stepped over in one regex match; false sends every byte through the tokenizer, same result, slower
@@ -79,6 +81,11 @@ HtmlValidator::$fastPath        = true; // text and tags the rules can never ref
 `$iframeHosts` entries are host names only, matched whole and case-insensitively: no scheme,
 no port, no path, no wildcard. `player.vimeo.com` does not match `vimeo.com` or the other way
 round.
+
+`$urlSchemes` entries are scheme names with no colon, read case-insensitively. Add a scheme
+when the visitor's machine should open it on a click (`sms`, `whatsapp`, an app link): every
+scheme past the four defaults hands the click to whatever program is registered for it.
+`javascript` is refused whatever the list holds, so a wrong entry cannot turn the check off.
 
 ### Result
 
@@ -163,7 +170,7 @@ Every code, its template, and what `detail` holds. Templates are `Violation::TEM
 | `element-not-allowed`    | `%s is not allowed`                                                                             | the start tag as written, from `<` to `>` (`<script src="x">`), or the doctype (`<!DOCTYPE html>`)                                                        |
 | `event-handler`          | `%s= event handler attributes are not allowed`                                                  | the attribute name, lowercased (`onclick`)                                                                                                                |
 | `attribute-not-allowed`  | `The %s attribute is not allowed`                                                               | `srcdoc`, or `formaction` while `$allowForms` is off, or `style` while `$allowStyles` is off                                                               |
-| `url-scheme-not-allowed` | `The URL in %s must start with http:, https:, mailto:, tel:, a relative path, or #`             | the attribute name and its decoded value (`href="javascript:alert(1)"`)                                                                                   |
+| `url-scheme-not-allowed` | `The URL in %s must start with http:, https:, mailto:, tel: or another allowed scheme`          | the attribute name and its decoded value (`href="javascript:alert(1)"`)                                                                                   |
 | `iframe-host`            | `Embedding frames from %s is not allowed`                                                       | the `src` value with whitespace removed (`https://evil.example/x`), or `(no src)`                                                                         |
 | `css-not-allowed`        | `CSS containing %s is not allowed`                                                              | the banned token as matched (`expression(`, `\`, `[value^=`, `unicode-range`) or the `url()` with its target (`url(javascript:x)`), or the first 80 characters of a block past the PCRE limit (megabytes of `x*|` pairs inside one `[`) |
 | `less-than-in-text`      | `A < where a browser reads text, not tags: %s`                                                  | the text from that `<` to the end of the raw text or comment (`<img src=x onerror=alert(1)>`, `<b> c`)                                                    |
@@ -278,12 +285,12 @@ and `&#106;avascript:` are `javascript:` too. A value with no scheme (a relative
 `/root`, `//host`, `#id`, `?query`, an empty string, `/time/12:30`) has nothing to check.
 
 - On the attributes in `URL_ATTRIBUTES` (`href`, `src`, `action`, `formaction`, `poster`,
-  `ping`, `srcset`, `cite`, `longdesc`, `background`), the scheme must be in `URL_SCHEMES`:
-  `http`, `https`, `mailto`, `tel`. Case-insensitive. `data:`, `vbscript:`, `ftp:`, `file:`
-  and every other scheme reject with `url-scheme-not-allowed`. One exception: `<img src>` also
-  accepts `data:image/...`, any image type, `svg+xml` included, because a browser decodes an
-  `img` resource as a picture and nothing else. `data:` on `srcset`, `poster` or `href`, in
-  an `<iframe>` or in CSS `url()` still rejects.
+  `ping`, `srcset`, `cite`, `longdesc`, `background`), the scheme must be in `$urlSchemes`:
+  `http`, `https`, `mailto`, `tel` by default. Case-insensitive. `data:`, `vbscript:`, `ftp:`,
+  `file:` and every other scheme reject with `url-scheme-not-allowed`. One exception:
+  `<img src>` also accepts `data:image/...`, any image type, `svg+xml` included, because a
+  browser decodes an `img` resource as a picture and nothing else. `data:` on `srcset`,
+  `poster` or `href`, in an `<iframe>` or in CSS `url()` still rejects.
 - On every other attribute, only the schemes in `SCRIPT_SCHEMES` reject: `javascript`. A
   browser ignores `javascript:` in `title=` or `data-href=`, but a page script that copies the
   value into a link or into `location` runs it. `vbscript:` and `data:` pass there because
@@ -457,7 +464,7 @@ output
 `formaction`
 <!-- /rules:formAttributes -->
 
-**`urlSchemes`** (allowed on a URL attribute): <!-- rules:urlSchemes -->
+**`urlSchemes`** (allowed on a URL attribute; the `$urlSchemes` setting) default: <!-- rules:urlSchemes -->
 `http`, `https`, `mailto`, `tel`
 <!-- /rules:urlSchemes -->
 

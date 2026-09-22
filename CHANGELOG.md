@@ -25,7 +25,9 @@ rejects anything that could run script in the page it is printed into, with a `R
   script in some browser, `url()` limited to `http:`, `https:` or relative, and the two
   selectors that leak page data (`[attr^=]` and friends, `unicode-range`).
 - **Switches** as static properties: `$allowForms` (off), `$allowStyles` (on),
-  `$allowEmbeds` (on) with `$iframeHosts` for the `<iframe>` hosts that pass.
+  `$allowEmbeds` (on) with `$iframeHosts` for the `<iframe>` hosts that pass, and
+  `$urlSchemes` for what a URL attribute may start with (`javascript` stays refused
+  whatever it holds).
 - **Unclosed markup** (`<img src="`, `<!-- x`, `<style>` with no end tag) is refused, since a
   fragment printed into a page keeps reading the page as part of it.
 - **A `<` inside raw text is refused** (`less-than-in-text`): the content of `<style>`, `<iframe>`

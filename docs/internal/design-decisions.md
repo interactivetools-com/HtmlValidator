@@ -259,6 +259,16 @@ On those only `http`, `https`, `mailto`, `tel` or no scheme pass. `data`, `xlink
 `<svg>` and `<html>`, all refused, or in no current browser, and `data=` on a custom element
 was a real false positive.
 
+The scheme list is the `$urlSchemes` setting, not a constant, because the four defaults are
+the schemes every browser handles itself and a site may want `sms:`, `whatsapp:` or an app
+link, each of which hands the click to whatever program the visitor's machine has registered
+for it. That is the site's call, not the library's: new schemes appear and old programs get
+bugs (`ms-msdt:` ran commands on one click in 2022), so a blocklist would never be complete.
+`javascript` is refused whatever the list holds, so a line copied from a forum cannot turn
+the check off. The fast path pattern is built from the list and cached by it, so a change
+after the first check rebuilds it; that matters when a scheme is removed, since the old
+pattern would still step over it.
+
 Every other attribute refuses only `javascript:`. The browser ignores it in `title=` or
 `data-href=`, but a page script that copies the value into a link or into `location` runs it
 (the clickable-row pattern). `vbscript:` runs nowhere and `data:` never runs as the page, so
@@ -382,9 +392,9 @@ current browser and the record needs the `<iframe>` code anyway.
 
 ## Switches Are Static Properties
 
-Three switches (`$allowForms`, `$allowStyles`, `$allowEmbeds`) and one list (`$iframeHosts`)
-are public static properties on `HtmlValidator`, like SvgValidator's limits. Set once at
-startup, read by every `check()`.
+Three switches (`$allowForms`, `$allowStyles`, `$allowEmbeds`) and two lists (`$iframeHosts`,
+`$urlSchemes`) are public static properties on `HtmlValidator`, like SvgValidator's limits.
+Set once at startup, read by every `check()`.
 
 Rejected: an `Options` object or a constructor. The CMS has one configuration for the whole
 install, the switches are few, and a static property is what SvgValidator's limits already
