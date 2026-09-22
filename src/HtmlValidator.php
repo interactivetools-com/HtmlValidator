@@ -344,7 +344,7 @@ final class HtmlValidator
             $this->checkIframe($token);
         }
         foreach ($token->attributes as $attribute => $value) {
-            $this->checkAttribute((string)$attribute, $value);   // PHP stores a name of digits only, <p 1="x">, as an int key
+            $this->checkAttribute($name, (string)$attribute, $value);   // PHP stores a name of digits only, <p 1="x">, as an int key
         }
     }
 
@@ -361,7 +361,7 @@ final class HtmlValidator
         };
     }
 
-    private function checkAttribute(string $attribute, string $value): void
+    private function checkAttribute(string $element, string $attribute, string $value): void
     {
         if (str_starts_with($attribute, 'on')) {
             $this->fail('event-handler', $attribute);
@@ -381,6 +381,9 @@ final class HtmlValidator
         $scheme = self::scheme($value);
         if ($scheme === null) {
             return;
+        }
+        if ($scheme === 'data' && $element === 'img' && $attribute === 'src' && str_starts_with(strtolower(self::compact($value)), 'data:image/')) {
+            return;   // inline image data: a browser decodes an img resource as a picture and nothing else, whatever the type
         }
         $allowed = in_array($attribute, self::URL_ATTRIBUTES, true)
             ? in_array($scheme, self::URL_SCHEMES, true)

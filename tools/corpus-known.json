@@ -17,9 +17,17 @@
                 "payload": "<p data-xml-prefix=\"dave\">text</p>",
                 "reason": "the test policy drops data-* attributes; they pass here by design"
             },
-            "3f91eea7829a": {
+            "cc4c31694c7e": {
                 "payload": "<img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAA...",
-                "reason": "data: on img src is refused with every data: URL; the plan keeps this open for HTML textboxes"
+                "reason": "a data: image on img src passes by design: a browser decodes an img resource as a picture and nothing else"
+            },
+            "f4fff02fd288": {
+                "payload": "<img src=\"data:image/png;base64,charset=utf-8,alert('hi');\">",
+                "reason": "a data: image on img src passes by design: a browser decodes an img resource as a picture and nothing else"
+            },
+            "3bbdd9e60479": {
+                "payload": "<img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAA...",
+                "reason": "a data: image on img src passes by design: a browser decodes an img resource as a picture and nothing else"
             },
             "f9a8fb9aac10": {
                 "payload": "<a></a style=\"xx:expr/**/ession(document.appendChild(document.createEl...",
@@ -153,14 +161,21 @@
         "rejects": [
             {
                 "code": "url-scheme-not-allowed",
-                "detail": "^src=\"(data:image/|blob:)",
-                "open": true,
-                "reason": "Word pastes carry images as data: URLs and CKEditor keeps them; data: is refused on img src, which the plan says to revisit for HTML textboxes (blob: is a browser-session URL that would never load after save)"
+                "detail": "^src=\"blob:",
+                "reason": "a blob: URL is a browser-session URL that would never load after save; data: images on img src pass"
             }
         ]
     },
     "dompurify": {
         "cases": {
+            "4efa97ec381c": {
+                "payload": "<img src=data:image/jpeg,ab798ewqxbaudbuoibeqbla>",
+                "reason": "a data: image on img src passes by design: a browser decodes an img resource as a picture and nothing else"
+            },
+            "2d6ee31192c5": {
+                "payload": "<img src=\"\r\ndata:image/jpeg,ab798ewqxbaudbuoibeqbla\">",
+                "reason": "a data: image on img src passes by design: a browser decodes an img resource as a picture and nothing else"
+            },
             "1326a479d560": {
                 "payload": "<img src=x name=createElement><img src=y id=createElement>",
                 "reason": "DOM clobbering (name= on img), a known non-goal"

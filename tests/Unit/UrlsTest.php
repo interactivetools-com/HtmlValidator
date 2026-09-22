@@ -45,6 +45,23 @@ final class UrlsTest extends HtmlValidatorTestCase
         ];
     }
 
+    #[DataProvider('imageDataProvider')]
+    public function testImageDataPassesOnImgSrc(string $value): void
+    {
+        $this->assertAccepts("<img src=\"$value\">");
+    }
+
+    public static function imageDataProvider(): array
+    {
+        return [
+            'png'              => ['data:image/png;base64,iVBORw0KGgo='],
+            'svg'              => ['data:image/svg+xml,<svg onload=alert(1)></svg>'],   // an img shows an SVG as a picture: no script, no loads
+            'uppercase'        => ['DATA:IMAGE/PNG;BASE64,iVBORw0KGgo='],
+            'leading newline'  => ["\n data:image/gif;base64,R0lGODlh"],
+            'no base64'        => ['data:image/svg+xml;charset=utf-8,%3Csvg%2F%3E'],
+        ];
+    }
+
     #[DataProvider('urlAttributeProvider')]
     public function testEveryUrlAttributeIsChecked(string $attribute): void
     {
@@ -81,7 +98,11 @@ final class UrlsTest extends HtmlValidatorTestCase
             'mixed case'                 => ['<a href="JaVaScRiPt:alert(1)">x</a>'],
             'vbscript'                   => ['<a href="vbscript:MsgBox(1)">x</a>'],
             'data'                       => ['<a href="data:text/html,<script>alert(1)</script>">x</a>'],
-            'data image on img'          => ['<img src="data:image/png;base64,iVBORw0KGgo=">'],
+            'data image on href'         => ['<a href="data:image/png;base64,iVBORw0KGgo=">x</a>'],
+            'data image on srcset'       => ['<img srcset="data:image/png;base64,iVBORw0KGgo= 1x">'],
+            'data image on poster'       => ['<video poster="data:image/png;base64,iVBORw0KGgo="></video>'],
+            'data page on img'           => ['<img src="data:text/html,<script>alert(1)</script>">'],
+            'data image with no slash'   => ['<img src="data:imagepng;base64,iVBORw0KGgo=">'],
             'unknown scheme on href'     => ['<a href="ftp://example.com/">x</a>'],
             'file scheme'                => ['<a href="file:///etc/passwd">x</a>'],
             'leading spaces'             => ['<a href="   javascript:alert(1)">x</a>'],
