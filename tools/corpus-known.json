@@ -322,8 +322,7 @@
             {
                 "code": "element-not-allowed",
                 "detail": "^<image\\b",
-                "open": true,
-                "reason": "browsers rewrite image to img while building the tree; the allowlist does not have it"
+                "reason": "browsers rewrite image to img while building the tree; it is refused by design: not a spec element, and only attack sets use it"
             }
         ]
     },
