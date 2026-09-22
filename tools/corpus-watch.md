@@ -41,12 +41,12 @@ of each downloaded file or, for a repo folder, the folder's git tree hash at dow
    is gone or now gets the expected result.
 
 Sources looked at and not added (2026-09-14), so they need no second look unless something
-changes: foundation-emails (Inky source, not HTML output); the leemunroe template (no license
-stated); HTMLPurifier's xssAttacks.xml, bleach's data beyond what is fetched, bluemonday's
-AntiSamy set, PayloadsAllTheThings' RSNAKE file and SecLists' XSS lists (all copies of the OWASP
-sheet); the html5lib tree-construction suite (parser cases with no pass or fail meaning here);
-Angular, jsoup, sanitize-html, nh3 and the Ruby sanitizers (small suites embedded in test code,
-same techniques as the sources we have).
+changes: foundation-emails (Inky source, not HTML output); the leemunroe template (MIT; same
+markup as the templates already in the set); HTMLPurifier's xssAttacks.xml, bleach's data
+beyond what is fetched, bluemonday's AntiSamy set, PayloadsAllTheThings' RSNAKE file and
+SecLists' XSS lists (all copies of the OWASP sheet); the html5lib tree-construction suite
+(parser cases with no pass or fail meaning here); Angular, jsoup, sanitize-html, nh3 and the
+Ruby sanitizers (small suites embedded in test code, same techniques as the sources we have).
 
 ## 2. New security reports
 

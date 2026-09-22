@@ -29,7 +29,7 @@ jobs:
           # OS/arch bugs (paths, case-insensitive filenames, char signedness in
           # extensions) don't vary by PHP version, so one job per platform at the
           # 8.1 floor. No Windows ARM job: php.net ships no ARM64 Windows builds.
-          - { os: windows-latest,    php: '8.1' }   # Windows x64 - CMSB production
+          - { os: windows-latest,    php: '8.1' }   # Windows x64 - where the CMS runs in production
           - { os: ubuntu-24.04-arm,  php: '8.1' }   # Linux arm64 - Graviton-class hosts
           - { os: macos-latest,      php: '8.1' }   # macOS arm64 - Apple Silicon devs
           # macos-15-intel is off: setup-php often can't install PHP 8.1 there and the job fails before any test runs

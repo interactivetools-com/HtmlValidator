@@ -406,16 +406,6 @@
             }
         }
     },
-    "mailchimp": {
-        "rejects": [
-            {
-                "code": "css-not-allowed",
-                "detail": "^\\\\$",
-                "open": true,
-                "reason": "backslashes inside CSS comments (/* /\\/\\/ */ banners); the CSS check reads comments too"
-            }
-        ]
-    },
     "mdn": {
         "rejects": [
             {

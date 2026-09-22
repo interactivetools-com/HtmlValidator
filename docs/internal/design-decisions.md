@@ -214,8 +214,9 @@ skip off for the rest of that run, as before. A window can end between `<` and a
 so the lone-`<` branch is `<(?=[^!/?a-z])`, a positive lookahead: a `<` with nothing in view
 after it is not text, or `<script>` on a window's edge would pass. FastPathTest pins that.
 
-Measured 2026-09-21 on ovh2 (PHP 8.1 and 8.5 give the same thresholds): 8 MB of dense tags
-checks in 23 ms against 1.3 s with the skip dropped. Rejected on the way: a bounded repeat
+Measured 2026-09-21 on a dedicated server (Intel Xeon E-2386G; PHP 8.1 and 8.5 give the
+same thresholds): 8 MB of dense tags checks in 23 ms against 1.3 s with the skip dropped.
+Rejected on the way: a bounded repeat
 (`{1,40}+` already fails to compile: PCRE copies the group per repetition and refuses at
 64 KB); a subroutine call in a bounded repeat (`(?&i){0,N}+` exhausts the JIT stack at
 N=2000 on any input, and at N=500 is 1.3 to 5x slower than a window); windows from the first
@@ -498,10 +499,10 @@ the `javascript:` check on every attribute value, not only the named URL attribu
 
 Token-stream validators and sanitizers with no tree: bluemonday (Go, on the `x/net/html`
 tokenizer), the OWASP Java HTML Sanitizer (explicitly streaming), and html5lib's sanitizer
-(a Python token filter, which bleach was built on). Their historical bypasses were
-attribute-value parsing edge cases and entity decoding at the wrong step, both from
-hand-rolled tokenizers that did not follow the spec states. That is why the tokenizer here
-is written from the spec's state list and run against html5lib's suite.
+(a Python token filter, which bleach was built on). The bypasses in this class of tool came
+from attribute values and entity decoding handled outside the tokenizer's states. That is
+why the tokenizer here is written from the spec's state list and run against html5lib's
+suite.
 
 ## The Corpus Stays Out of the Repo
 
@@ -510,10 +511,12 @@ The rules were checked against public XSS payload lists downloaded by
 PortSwigger cheat sheet (copyrighted, downloaded for local testing only), html5sec.org,
 DOMPurify's fixtures including its mXSS cases, and the OWASP filter evasion sheet (CC BY-SA).
 Nothing from the corpus is copied into `tests/`. Running a check against a payload on a
-developer's machine is a use those terms allow; copying the payloads into an MIT repo is
-not, and we do not do it. The fetch tool keeps each source's license text next to its
-files, and the committed fixtures are our own: one per error code, the TinyMCE round trip,
-and the accept set written from the ideas the corpus surfaced.
+developer's machine is a use those terms allow; the payload lists stay out of the repo, and
+`tools/corpus-known.json` keeps a hash per reviewed case and an excerpt of under 100
+characters so a person can see which case a note is about. The fetch tool keeps each
+source's license text next to its files, and the committed fixtures are our own: one per
+error code, the TinyMCE round trip, and the accept set written from the ideas the corpus
+surfaced.
 
 The html5lib tokenizer suite is the exception: it is MIT, so it is committed under
 `tests/Support/fixtures/html5lib/` with its license file.

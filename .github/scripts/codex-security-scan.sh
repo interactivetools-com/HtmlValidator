@@ -114,8 +114,8 @@ wasted:
   something else, and the docs say so.
 - The switches are process-wide static properties by design.
 - Rejecting more than a browser would run (<template>, <noscript>, <svg>,
-  <math>, data: images, unclosed markup, substring selectors, unicode-range,
-  a custom element attribute with a refused scheme) is by design.
+  <math>, unclosed markup, substring selectors, unicode-range, a custom
+  element attribute with a refused scheme) is by design.
 - The library's own time and memory: the check is one pass, and memory is
   the content plus the current token.
 - Tokenizer, Token and CharacterReferences are marked @internal; their

@@ -541,8 +541,8 @@ form or the API before the check.
   layout overlays, content length, and what the text says.
 - **Custom elements pass with any attributes** except `on*`, `srcdoc` and scheme-bearing
   values. `<my-link url="javascript:x">` rejects; `<my-link url="https://x">` passes.
-- **`data:` images are refused on `<img src>`** with the rest of `data:`. Upload the image
-  and link the file.
+- **`data:` images pass on `<img src>`** (any image type, `svg+xml` included). Every other
+  `data:` URL is refused.
 - **Switches are process-wide.** They are static properties, so a change in one request
   handler affects every later `check()` in the same process. Set them at startup.
 - **`Tokenizer`, `Token` and `CharacterReferences` are internal.** They are the validator's

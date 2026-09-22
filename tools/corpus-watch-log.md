@@ -21,7 +21,7 @@ everything published after this date.
   match the substring `behavior:`; backslashes inside CSS comments (43 of 44 Mailchimp
   templates); escapes inside quoted strings (`content:"\a0"` on Wikipedia, `"\@Yu Mincho"` in
   Word pastes).
-- Three judgment calls, in __plan.md under Open questions and marked open in the known file:
+- Three judgment calls, marked open in the known file:
   `div[style*="margin: 16px 0"]` in every email template; `data:` images that CKEditor keeps
   from Word pastes (21 of 85 normalized pastes); `<image>`, which browsers rewrite to `img`.
 - From reading the spec, not the corpus: `<style>` inside `<select>` was ignored by the old "in

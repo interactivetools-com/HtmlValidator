@@ -24,7 +24,8 @@ Everything else is left alone, including custom elements and attributes it has n
 
 It works the way a browser does: it runs the HTML5 tokenizer on the content and checks each
 tag as it comes out. There is no tree and no second parse, so the tags and attributes it
-sees are the ones a browser sees, and memory is the content string plus a few KB.
+sees are the ones a browser sees, and memory is a copy of the content plus the current
+token, about twice the content at worst.
 
 ## Quick Start
 
@@ -125,9 +126,10 @@ and everything that would let a payload hide from the check itself. Nothing else
   imitate a login box. Frames are on, from the hosts in `$iframeHosts` only, because a frame
   from anywhere can show anything. Styles are on, through the CSS check.
 
-The tokenizer passes the html5lib tokenizer test suite, so tags and attributes come out the
-way browsers read them. The rules are checked against the PortSwigger, html5sec, DOMPurify
-and OWASP payload lists.
+The tokenizer passes the html5lib tokenizer test suite, all but the cases that need a parser
+rather than a tokenizer (a parsed DOCTYPE, the script-data and CDATA states) and four
+lone-surrogate inputs, so tags and attributes come out the way browsers read them. The rules
+are checked against the PortSwigger, html5sec, DOMPurify and OWASP payload lists.
 
 ## What It Does Not Check
 
