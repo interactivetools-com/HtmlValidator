@@ -27,6 +27,7 @@ Contents:
 - [Keeping Up With New HTML Features](#keeping-up-with-new-html-features)
 - [Precedent](#precedent)
 - [The Corpus Stays Out of the Repo](#the-corpus-stays-out-of-the-repo)
+- [Chrome Double-Checks What Passes](#chrome-double-checks-what-passes)
 - [Naming](#naming)
 
 ## Threat Model
@@ -495,6 +496,23 @@ and the accept set written from the ideas the corpus surfaced.
 
 The html5lib tokenizer suite is the exception: it is MIT, so it is committed under
 `tests/Support/fixtures/html5lib/` with its license file.
+
+## Chrome Double-Checks What Passes
+
+The rules read our own tokenizer's tokens, so a tokenizer bug that reads a tag differently
+from a browser could pass a script. `ChromeCrossCheckTest` is the test for that day: every
+fragment the check accepts (the fixtures, the html5lib inputs and the corpus) is parsed by
+headless Chrome, and the tree Blink builds must hold no script element, no `on*` attribute
+and no `javascript:` URL. One Chrome run does all of them: the fragments go into a harness
+page as JSON, the page parses each with `DOMParser` and walks the tree, and `--dump-dom`
+carries the findings back. A `DOMParser` document has scripting off, so `<noscript>` content
+is parsed as markup, and the walk enters `<template>` content, so neither hides anything.
+
+Chrome, not a PHP parser, because a browser is the thing the check protects against: a
+script Chrome does not see is not a script. PHP 8.4's `Dom\HTMLDocument` (Lexbor) was the
+earlier plan and needs nothing installed, but Chrome is on every CI runner except Linux on
+ARM, where Google ships no build and the test skips. Without Chrome the test fails when `CI`
+is set and skips elsewhere, so a contributor's first run stays green.
 
 ## Naming
 

@@ -48,3 +48,6 @@ rejects anything that could run script in the page it is printed into, with a `R
 - **An HTML5 tokenizer** written from the HTML Standard's state list, run against the
   html5lib tokenizer test suite in CI. Internal: the public API is `HtmlValidator`, `Result`
   and `Violation`.
+- **A browser double-check** in CI: everything the check accepts (the fixtures, the html5lib
+  inputs and the corpus) is parsed by headless Chrome, and the tree it builds must hold no
+  script element, no `on*` attribute and no `javascript:` URL.
