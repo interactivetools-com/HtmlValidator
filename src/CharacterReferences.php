@@ -93,7 +93,9 @@ final class CharacterReferences
     //endregion
     //region Decoding
 
-    /** @param array<int, array{string, int}> $m match with offsets: [whole, hex, decimal, name] */
+    /**
+     * @param array<int, array{string, int}> $m match with offsets: [whole, hex, decimal, name]
+     */
     private static function replace(array $m, string $text, bool $inAttribute): string
     {
         [$whole, $offset] = $m[0];

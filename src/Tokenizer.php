@@ -87,7 +87,10 @@ final class Tokenizer
     private ?Token          $unclosed     = null;   // set when the input ends inside markup, yielded last
     private int             $skipWindow   = 0;      // bytes the skip regex sees per call: the whole input, or SKIP_WINDOW after a PCRE limit
 
-    /** After a PCRE limit the skip regex runs over this many bytes at a time: enough tags per call to keep the speed, too few to reach the limit again */
+    /**
+     * After a PCRE limit the skip regex runs over this many bytes at a time: enough tags per call to keep
+     * the speed, too few to reach the limit again
+     */
     private const SKIP_WINDOW = 65536;
 
     /**
@@ -110,7 +113,9 @@ final class Tokenizer
         $this->length = strlen($this->html);
     }
 
-    /** @return Generator<int, Token> */
+    /**
+     * @return Generator<int, Token>
+     */
     public function tokens(): Generator
     {
         $html = $this->html;
@@ -186,7 +191,9 @@ final class Tokenizer
     //endregion
     //region Raw Text States
 
-    /** RCDATA, RAWTEXT and PLAINTEXT: text up to the matching end tag, or to the end of input */
+    /**
+     * RCDATA, RAWTEXT and PLAINTEXT: text up to the matching end tag, or to the end of input
+     */
     private function rawText(): Generator
     {
         $html  = $this->html;
@@ -218,7 +225,9 @@ final class Tokenizer
     //endregion
     //region Tag States
 
-    /** At "</": an end tag, nothing (</>), text (</ at the end), or a bogus comment */
+    /**
+     * At "</": an end tag, nothing (</>), text (</ at the end), or a bogus comment
+     */
     private function endTagOpen(int $pos): Generator
     {
         $html = $this->html;
@@ -331,7 +340,9 @@ final class Tokenizer
         return new Token(Token::START_TAG, $name, $attributes, $selfClosing, '', $pos, $p);
     }
 
-    /** The input ended inside a tag: browsers drop the token and stop, so move to the end */
+    /**
+     * The input ended inside a tag: browsers drop the token and stop, so move to the end
+     */
     private function eofInTag(int $pos, string $name): ?Token
     {
         $this->pos      = $this->length;
@@ -342,7 +353,9 @@ final class Tokenizer
     //endregion
     //region Comment and Doctype States
 
-    /** At "<!": a comment, a doctype, or a bogus comment */
+    /**
+     * At "<!": a comment, a doctype, or a bogus comment
+     */
     private function markupDeclaration(int $pos): Generator
     {
         $html = $this->html;
@@ -361,7 +374,9 @@ final class Tokenizer
         }
     }
 
-    /** Comment body from after "<!--" to "-->" or "--!>", with the empty forms <!--> and <!---> */
+    /**
+     * Comment body from after "<!--" to "-->" or "--!>", with the empty forms <!--> and <!--->
+     */
     private function comment(int $pos): Token
     {
         $html      = $this->html;
@@ -389,7 +404,9 @@ final class Tokenizer
         return new Token(Token::COMMENT, '', [], false, $data, $pos, $this->pos);
     }
 
-    /** Everything from $dataStart to the next ">" is the comment */
+    /**
+     * Everything from $dataStart to the next ">" is the comment
+     */
     private function bogusComment(int $pos, int $dataStart): Token
     {
         $html      = $this->html;

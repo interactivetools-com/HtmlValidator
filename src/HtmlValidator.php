@@ -63,16 +63,25 @@ final class HtmlValidator
         'u', 'ul', 'var', 'video', 'wbr',
     ];
 
-    /** Pass only when $allowForms is set. Forms submit data and can imitate a login box, but they run no script. */
+    /**
+     * Pass only when $allowForms is set. Forms submit data and can imitate a login box, but they run no script.
+     */
     public const FORM_ELEMENTS = ['form', 'input', 'button', 'select', 'selectedcontent', 'option', 'optgroup', 'datalist', 'textarea', 'label', 'fieldset', 'legend', 'output'];
 
-    /** Refused on every element. The on* attributes are refused too, by prefix rather than by name, so new event handlers are covered without a list. */
+    /**
+     * Refused on every element. The on* attributes are refused too, by prefix rather than by name, so new
+     * event handlers are covered without a list.
+     */
     public const ATTRIBUTES_REFUSED = ['srcdoc'];
 
-    /** Attribute names that pass only when $allowForms is set. */
+    /**
+     * Attribute names that pass only when $allowForms is set.
+     */
     public const FORM_ATTRIBUTES = ['formaction'];
 
-    /** URL schemes a URL attribute may start with. Anything else with a scheme is refused; values with no scheme pass. */
+    /**
+     * URL schemes a URL attribute may start with. Anything else with a scheme is refused; values with no scheme pass.
+     */
     public const URL_SCHEMES = ['http', 'https', 'mailto', 'tel'];
 
     /**
@@ -82,7 +91,9 @@ final class HtmlValidator
      */
     public const SCRIPT_SCHEMES = ['javascript'];
 
-    /** URL schemes allowed inside CSS url(). */
+    /**
+     * URL schemes allowed inside CSS url().
+     */
     public const CSS_URL_SCHEMES = ['http', 'https'];
 
     /**
@@ -133,7 +144,9 @@ final class HtmlValidator
     public static bool $allowStyles  = true;    // the style attribute and the <style> element, both through the CSS check
     public static bool $allowEmbeds  = true;    // <iframe> whose src host is in $iframeHosts
 
-    /** @var string[] hosts an <iframe src> may point at, matched exactly and case-insensitively */
+    /**
+     * @var string[] hosts an <iframe src> may point at, matched exactly and case-insensitively
+     */
     public static array $iframeHosts = ['www.youtube.com', 'www.youtube-nocookie.com', 'player.vimeo.com', 'www.google.com'];
 
     // Limits
@@ -187,7 +200,9 @@ final class HtmlValidator
     //endregion
     //region Check Flow
 
-    /** @var array<string, Violation> keyed by code and detail, so the same problem reports once */
+    /**
+     * @var array<string, Violation> keyed by code and detail, so the same problem reports once
+     */
     private array $errors = [];
 
     private string $html = '';
@@ -205,7 +220,9 @@ final class HtmlValidator
         return new Result(array_values($this->errors));
     }
 
-    /** Invalid UTF-8 and control characters are refused before tokenizing, and nothing else is checked when they are */
+    /**
+     * Invalid UTF-8 and control characters are refused before tokenizing, and nothing else is checked when they are
+     */
     private function bytesAllowTokenizing(string $html): bool
     {
         if (!preg_match('//u', $html)) {   // PCRE's own UTF-8 check: a plain loop with no limit to reach, whatever the size
@@ -221,7 +238,9 @@ final class HtmlValidator
         return true;
     }
 
-    /** Bytes of well-formed UTF-8 before the first bad one, for content the //u check refused */
+    /**
+     * Bytes of well-formed UTF-8 before the first bad one, for content the //u check refused
+     */
     private static function validUtf8Length(string $html): int
     {
         $length = 0;
@@ -292,7 +311,9 @@ final class HtmlValidator
     //endregion
     //region Fast Path
 
-    /** @var array<int, string> the known-safe regex with $allowStyles off (0) and on (1), built on first use */
+    /**
+     * @var array<int, string> the known-safe regex with $allowStyles off (0) and on (1), built on first use
+     */
     private static array $knownSafe = [];
 
     /**
@@ -332,7 +353,9 @@ final class HtmlValidator
     //endregion
     //region Token Rules
 
-    /** A refused element reports once and its attributes are not checked, so <script onload> gives one message */
+    /**
+     * A refused element reports once and its attributes are not checked, so <script onload> gives one message
+     */
     private function checkStartTag(Token $token): void
     {
         $name = $token->name;
@@ -393,7 +416,9 @@ final class HtmlValidator
         }
     }
 
-    /** src must be an absolute http, https or protocol-relative URL on a listed host; no src is refused too */
+    /**
+     * src must be an absolute http, https or protocol-relative URL on a listed host; no src is refused too
+     */
     private function checkIframe(Token $token): void
     {
         // what a browser strips from a URL before parsing: spaces and controls at the ends, tabs and newlines
@@ -448,7 +473,9 @@ final class HtmlValidator
         return strtolower($match[1]);
     }
 
-    /** The value with ASCII whitespace and control characters removed, as a browser reads a URL */
+    /**
+     * The value with ASCII whitespace and control characters removed, as a browser reads a URL
+     */
     private static function compact(string $value): string
     {
         return preg_replace('/[\x00-\x20\x7F]+/', '', $value);
@@ -457,13 +484,17 @@ final class HtmlValidator
     //endregion
     //region Helpers
 
-    /** The tag as written in the content, after CR and CRLF became LF */
+    /**
+     * The tag as written in the content, after CR and CRLF became LF
+     */
     private function source(Token $token): string
     {
         return substr($this->html, $token->start, $token->end - $token->start);
     }
 
-    /** The first $maxDetailLength characters of a value for an error message, cut on a UTF-8 boundary. */
+    /**
+     * The first $maxDetailLength characters of a value for an error message, cut on a UTF-8 boundary.
+     */
     private static function excerpt(string $value): string
     {
         preg_match('/^.{0,' . self::$maxDetailLength . '}/us', $value, $match);
