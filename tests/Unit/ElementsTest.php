@@ -56,9 +56,54 @@ final class ElementsTest extends HtmlValidatorTestCase
             'digits and dots'        => ['x-1.0_b-c', true],
             'hyphen at the end'      => ['widget-', true],
             'no hyphen'              => ['widget', false],
-            'namespace prefix'       => ['o:p', false],
+            'namespace prefix'       => ['svg:rect', false],
             'less-than in the name'  => ['a<b', false],
         ];
+    }
+
+    #[DataProvider('wordElementProvider')]
+    public function testWordElement(string $element, bool $allowed): void
+    {
+        $html = "<$element>x</$element>";
+        if ($allowed) {
+            $this->assertAccepts($html);
+        } else {
+            $this->assertRejects($html, 'element-not-allowed', "<$element>");
+        }
+    }
+
+    public static function wordElementProvider(): array
+    {
+        return [
+            'office paragraph'     => ['o:p', true],
+            'vml shape'            => ['v:shape', true],
+            'word content control' => ['w:sdtPr', true],
+            'uppercase'            => ['O:P', true],
+            'ie html+time'         => ['t:set', false],   // what IE 5.5 to 9 ran; never Word's
+            'xsl'                  => ['xsl:template', false],
+            'other prefix'         => ['x:timer', false],
+            'prefix alone'         => ['o:', false],
+            'word xml block'       => ['xml', false],
+        ];
+    }
+
+    public function testWordElementAttributesAreChecked(): void
+    {
+        $this->assertRejects('<o:p onclick="1">x</o:p>', 'event-handler', 'onclick');
+        $this->assertRejects('<v:imagedata src="file:///C:/clip.png"/>', 'url-scheme-not-allowed', 'src="file:///C:/clip.png"');
+        $this->assertRejects('<w:sdt style="behavior:url(x)">x</w:sdt>', 'css-not-allowed', 'behavior:');
+    }
+
+    public function testIeHtmlTimeChainRejects(): void
+    {
+        // the namespace instruction is a bogus comment and passes; the import that bound the behavior rejects, and so does the element
+        $html   = '<?xml:namespace prefix="t" ns="urn:schemas-microsoft-com:time"><?import namespace="t" implementation="#default#time2"><t:set attributeName="innerHTML" to="x"/>';
+        $result = HtmlValidator::check($html);
+        $this->assertSame(['<?import namespace="t" implementation="#default#time2">', '<t:set attributeName="innerHTML" to="x"/>'], array_column($result->errors, 'detail'));
+
+        // the prefix was arbitrary in IE, so with a Word prefix the import is the one thing that rejects
+        $this->assertRejects('<?IMPORT namespace="o" implementation="#default#time2"><o:set attributeName="innerHTML" to="x"/>', 'element-not-allowed', '<?IMPORT namespace="o" implementation="#default#time2">');
+        $this->assertAccepts('<?xml:namespace prefix="o" ns="urn:schemas-microsoft-com:office:office"/><o:p></o:p>');
     }
 
     public function testUnknownAttributesOnAllowedElementsPass(): void

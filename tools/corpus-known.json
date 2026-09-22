@@ -57,9 +57,13 @@
                 "payload": "<!--#exec cmd=\"/bin/echo '<SCR'\"--><!--#exec cmd=\"/bin/echo 'IPT SRC=h...",
                 "reason": "server-side includes inside comments; comments to a browser"
             },
-            "21877bedf338": {
-                "payload": "<!--[if gte IE 4]><SCRIPT>alert('XSS');</SCRIPT><![endif]-->",
-                "reason": "IE conditional comments; every current browser reads the whole thing as a comment"
+            "7998ebc76c94": {
+                "payload": "<div>text <!--[if IE]> <!--[if gte 6]> comment <[endif]--><[endif]--><...",
+                "reason": "a comment opened inside a conditional comment has no close before the outer -->; the inside is checked as markup and reports it unclosed, and the markup is broken in every browser anyway"
+            },
+            "4629331f44c0": {
+                "payload": "<div>text <!--[if IE]> <!-- IE specific --> comment <[endif]--></div>",
+                "reason": "a comment opened inside a conditional comment has no close before the outer -->; the inside is checked as markup and reports it unclosed, and the markup is broken in every browser anyway"
             },
             "69ff580fabd4": {
                 "payload": "<STYLE TYPE=\"text/javascript\">alert('XSS');</STYLE>",
@@ -288,10 +292,6 @@
     },
     "html5lib": {
         "cases": {
-            "e3df6625d200": {
-                "payload": "<!--[if gte IE 4]><script>alert('XSS');</script><![endif]-->",
-                "reason": "IE conditional comments; every current browser reads the whole thing as a comment"
-            },
             "533a88555f46": {
                 "payload": "<div style=\"background-image:¥¢l('ja¦a£c¢i ¤:ale¢¤(.1027X.1053S')')\">f...",
                 "reason": "url( spelled in another charset; a UTF-8 page reads the bytes as ordinary characters"
@@ -400,10 +400,6 @@
                 "payload": "<div id=\"x\">XXX</div> <style> #x{font-family:foo[bar;color:green;} #y]...",
                 "reason": "[ and ] breaking a selector; only old IE, and nothing runs either way"
             },
-            "f3dd844afef6": {
-                "payload": "<!--[if]><script>alert(1)</script --> <!--[if<img src=x onerror=alert(...",
-                "reason": "IE conditional comments; every other browser and IE 10 and later read the whole thing as a comment"
-            },
             "0c56f8213730": {
                 "payload": "<!-- `<img/src=xx:xx onerror=alert(1)//--!>",
                 "reason": "the img is inside a comment that ends at --!>, which is how the spec closes it"
@@ -445,10 +441,6 @@
             },
             "c106b549325e": {
                 "payload": "<?xml:namespace prefix=\"t\" ns=\"urn:schemas-microsoft-com:time\">",
-                "reason": "a processing instruction, which is a bogus comment in HTML; the IE HTML+TIME feature behind it is gone"
-            },
-            "fcd28420dea9": {
-                "payload": "<?import namespace=\"t\" implementation=\"#default#time2\">",
                 "reason": "a processing instruction, which is a bogus comment in HTML; the IE HTML+TIME feature behind it is gone"
             },
             "95176fbfbbb9": {
@@ -732,16 +724,8 @@
                 "payload": "<a href=http://foo.bar/#x=`y></a><img alt=\"`><img src=x:x onerror=java...",
                 "reason": "backtick quoting in IE 5 to 9; per HTML5 the inner img is inside the quoted alt value"
             },
-            "30a3bea3be27": {
-                "payload": "<!--[if]><script>javascript:alert(1)</script -->",
-                "reason": "IE conditional comments; every current browser reads the whole thing as a comment"
-            },
             "b06cbed88504": {
                 "payload": "<!--[if<img src=x onerror=javascript:alert(1)//]> -->",
-                "reason": "IE conditional comments; every current browser reads the whole thing as a comment"
-            },
-            "6179f572868e": {
-                "payload": "<!--[if gte IE 4]><SCRIPT>javascript:alert(1);</SCRIPT><![endif]-->",
                 "reason": "IE conditional comments; every current browser reads the whole thing as a comment"
             },
             "f685dfd9df4a": {
@@ -904,16 +888,8 @@
                 "payload": "<![endif]-->",
                 "reason": "<![endif] is a bogus comment"
             },
-            "8e2e76c13b65": {
-                "payload": "<?import namespace=\"xss\" implementation=\"http://ha.ckers.org/xss.htc\">",
-                "reason": "a processing instruction, which is a bogus comment in HTML; the IE HTML+TIME feature behind it is gone"
-            },
             "213c72b4b5a7": {
                 "payload": "<?xml:namespace prefix=\"t\" ns=\"urn:schemas-microsoft-com:time\">",
-                "reason": "a processing instruction, which is a bogus comment in HTML; the IE HTML+TIME feature behind it is gone"
-            },
-            "ae5b0b00e4c2": {
-                "payload": "<?import namespace=\"t\" implementation=\"#default#time2\">",
                 "reason": "a processing instruction, which is a bogus comment in HTML; the IE HTML+TIME feature behind it is gone"
             },
             "01937121d833": {

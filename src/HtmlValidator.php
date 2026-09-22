@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Itools\HtmlValidator;
 
 // import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
-use function addcslashes, array_diff, array_map, array_values, count, implode, in_array, preg_match, preg_match_all, preg_quote, preg_replace, str_replace, str_starts_with, strlen, strpos, strtolower, substr, trim;
+use function addcslashes, array_diff, array_map, array_values, count, implode, in_array, preg_match, preg_match_all, preg_quote, preg_replace, str_replace, str_starts_with, stripos, strlen, strncasecmp, strpos, strtolower, substr, trim;
 
 use const PREG_OFFSET_CAPTURE;
 
@@ -108,6 +108,10 @@ final class HtmlValidator
 
     // a custom element name: a letter, then letters, digits, dots or underscores, with at least one hyphen
     private const CUSTOM_ELEMENT = '/^[a-z][a-z0-9._]*-[a-z0-9._-]*$/';
+
+    // a Word element name: the o: (Office), v: (VML drawing) or w: (Word) prefix, then letters and digits. A browser
+    // makes an unknown element of it, which does nothing; the attributes get the normal rules
+    private const WORD_ELEMENT = '/^[ovw]:[a-z][a-z0-9]*$/';
 
     // CSS comments and quoted strings, read left to right the way the CSS tokenizer does: a comment runs
     // to */ or the end of the text, a string to its closing quote or a bare newline, and \ escapes the
@@ -272,7 +276,13 @@ final class HtmlValidator
                 $rawText = in_array($token->name, ['style', 'iframe', 'textarea'], true) ? $token->name : '';   // the allowed elements whose content is text to the end tag
             } elseif ($token->type === Token::COMMENT) {
                 if (substr($this->html, $token->start, 4) !== '<!--') {   // <?php ...>, <!x ...> and </ x>: comments to a browser, ending at the first >
-                    $this->checkNoLessThan($token->start + 2, $token->end);
+                    if (strncasecmp($token->data, '?import', 7) === 0) {   // <?import namespace="x" implementation="..."> bound a behavior to a prefix in IE 5.5 to 9
+                        $this->fail('element-not-allowed', self::excerpt($this->source($token)));
+                    } else {
+                        $this->checkNoLessThan($token->start + 2, $token->end);
+                    }
+                } elseif (strncasecmp($token->data, '[if', 3) === 0) {
+                    $this->checkConditionalComment($token->data);
                 }
             } elseif ($token->type === Token::DOCTYPE) {
                 $this->fail('element-not-allowed', self::excerpt($this->source($token)));
@@ -292,6 +302,30 @@ final class HtmlValidator
         $lessThan = strpos($this->html, '<', $from);
         if ($lessThan !== false && $lessThan < $end) {
             $this->fail('less-than-in-text', self::excerpt(substr($this->html, $lessThan, $end - $lessThan)));
+        }
+    }
+
+    /**
+     * The markup inside <!--[if ...]> ... <![endif]-->, checked with the same rules as the content around it.
+     * A comment to every browser since IE 10, but the IE engine inside old Windows programs and Outlook's Word
+     * engine read it as markup, and email templates rely on that for Outlook-only tables and VML buttons
+     */
+    private function checkConditionalComment(string $comment): void
+    {
+        $open = strpos($comment, ']>');
+        if ($open === false) {
+            return;
+        }
+        $inner = substr($comment, $open + 2);
+        $close = stripos($inner, '<![endif]');
+        if ($close !== false) {
+            $inner = substr($inner, 0, $close);
+        }
+        foreach ((new self())->run($inner)->errors as $violation) {
+            if (count($this->errors) >= self::$maxErrors) {
+                return;
+            }
+            $this->errors["$violation->code\0$violation->detail"] ??= $violation;
         }
     }
 
@@ -380,7 +414,8 @@ final class HtmlValidator
             'style'  => self::$allowStyles,
             'iframe' => self::$allowEmbeds,
             default  => (self::$allowForms && in_array($name, self::FORM_ELEMENTS, true))
-                        || preg_match(self::CUSTOM_ELEMENT, $name) === 1,
+                        || preg_match(self::CUSTOM_ELEMENT, $name) === 1
+                        || preg_match(self::WORD_ELEMENT, $name) === 1,
         };
     }
 
