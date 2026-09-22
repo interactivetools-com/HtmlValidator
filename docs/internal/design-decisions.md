@@ -301,6 +301,11 @@ every parser reads `<!-- -->` the same way. The cost on real content is zero: of
 corpus and fixture files the check accepts with every switch on, the rule refuses 28, all
 from XSS payload collections and none from the editor, email and CMS sources.
 
+The rule also covers `<select>` with `$allowForms` on. A tree builder on the pre-2025 spec
+(Chrome before 135) ignores a `<style>` or `<iframe>` start tag inside `<select>`, so the
+content after it is markup to that browser: `<select><style><img onerror=...></style>` runs
+there. The `<` in that content is refused first, so the old parsing never matters.
+
 Rejected: allowing `<xmp>` for code samples. It is raw text like `<style>`, so with this rule
 it could hold nothing a `<pre>` cannot, and without the rule its content is exactly the
 `strip_tags()` case above. `<xmp>` with encoded content does not work either: raw text is

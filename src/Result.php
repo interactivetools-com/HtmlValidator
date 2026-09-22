@@ -20,10 +20,14 @@ namespace Itools\HtmlValidator;
  */
 final class Result
 {
-    /** true when $errors is empty */
+    /**
+     * true when $errors is empty
+     */
     public readonly bool $ok;
 
-    /** @param Violation[] $errors */
+    /**
+     * @param Violation[] $errors
+     */
     public function __construct(public readonly array $errors)
     {
         $this->ok = $errors === [];

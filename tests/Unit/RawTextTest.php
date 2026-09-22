@@ -38,6 +38,9 @@ final class RawTextTest extends HtmlValidatorTestCase
             'markup declaration <!x'  => ["<!x $img", $img],
             'end tag with a space'    => ["</ x $img", $img],
             'cdata'                   => ['<![CDATA[<b>]]>', '<b>'],
+            // a parser on the pre-2025 spec (Chrome before 135) drops a style or iframe start tag inside select and reads on as markup
+            'style inside a select'   => ["<select><style>$img</style></select>", $img],
+            'iframe inside a select'  => ["<select><iframe src=\"https://www.youtube.com/embed/x\">$img</iframe></select>", $img],
         ];
     }
 
