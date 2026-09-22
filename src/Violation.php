@@ -34,7 +34,7 @@ final class Violation
         'element-not-allowed'    => '%s is not allowed',
         'event-handler'          => '%s= event handler attributes are not allowed',
         'attribute-not-allowed'  => 'The %s attribute is not allowed',
-        'url-scheme-not-allowed' => 'The URL in %s must start with http:, https:, mailto:, tel:, a relative path, or #',
+        'url-scheme-not-allowed' => 'The URL in %s must start with http:, https:, mailto:, tel: or another allowed scheme',
         'iframe-host'            => 'Embedding frames from %s is not allowed',
         'css-not-allowed'        => 'CSS containing %s is not allowed',
         'less-than-in-text'      => 'A < where a browser reads text, not tags: %s',

@@ -80,11 +80,6 @@ final class HtmlValidator
     public const FORM_ATTRIBUTES = ['formaction'];
 
     /**
-     * URL schemes a URL attribute may start with. Anything else with a scheme is refused; values with no scheme pass.
-     */
-    public const URL_SCHEMES = ['http', 'https', 'mailto', 'tel'];
-
-    /**
      * Schemes refused at the start of every attribute value, URL attribute or not. The browser
      * ignores a javascript: in title= or data-href=, but a page script that copies the value
      * into a link or into location runs it, so no value may start with one.
@@ -98,7 +93,7 @@ final class HtmlValidator
 
     /**
      * Attributes current browsers resolve as URLs on an allowed element. Their values must have
-     * no scheme or one in URL_SCHEMES. Every other attribute value only has to avoid
+     * no scheme or one in $urlSchemes. Every other attribute value only has to avoid
      * SCRIPT_SCHEMES, so title="Note: x" and a custom element's data="Note: x" pass.
      */
     public const URL_ATTRIBUTES = ['href', 'src', 'action', 'formaction', 'poster', 'ping', 'srcset', 'cite', 'longdesc', 'background'];
@@ -153,6 +148,13 @@ final class HtmlValidator
      */
     public static array $iframeHosts = ['www.youtube.com', 'www.youtube-nocookie.com', 'player.vimeo.com', 'www.google.com'];
 
+    /**
+     * @var string[] URL schemes a URL attribute may start with; any other scheme is refused, and a value with no
+     *               scheme passes. Add what your visitors' machines should open on a click (sms, whatsapp, an app
+     *               link). Read lowercase, and javascript is refused whatever this holds
+     */
+    public static array $urlSchemes = ['http', 'https', 'mailto', 'tel'];
+
     // Limits
     public static int $maxErrors       = 50;    // distinct errors reported per check
     public static int $maxDetailLength = 80;    // characters of content quoted in an error message before "..."
@@ -190,7 +192,7 @@ final class HtmlValidator
             'formElements'      => self::FORM_ELEMENTS,
             'attributesRefused' => self::ATTRIBUTES_REFUSED,
             'formAttributes'    => self::FORM_ATTRIBUTES,
-            'urlSchemes'        => self::URL_SCHEMES,
+            'urlSchemes'        => self::urlSchemes(),
             'scriptSchemes'     => self::SCRIPT_SCHEMES,
             'cssUrlSchemes'     => self::CSS_URL_SCHEMES,
             'urlAttributes'     => self::URL_ATTRIBUTES,
@@ -346,7 +348,7 @@ final class HtmlValidator
     //region Fast Path
 
     /**
-     * @var array<int, string> the known-safe regex with $allowStyles off (0) and on (1), built on first use
+     * @var array<string, string> the known-safe regex by the settings it reads ($allowStyles and $urlSchemes), built on first use
      */
     private static array $knownSafe = [];
 
@@ -360,15 +362,17 @@ final class HtmlValidator
      */
     private static function knownSafePattern(): string
     {
-        $styles = (int)self::$allowStyles;
-        if (isset(self::$knownSafe[$styles])) {
-            return self::$knownSafe[$styles];
+        $styles  = (int)self::$allowStyles;
+        $schemes = self::urlSchemes();
+        $key     = $styles . ' ' . implode(' ', $schemes);
+        if (isset(self::$knownSafe[$key])) {
+            return self::$knownSafe[$key];
         }
         $space = '[\t\n\f ]';
         // a value with no character reference but &amp; (a reference can decode to anything) and no colon, so no scheme
         $value = '(?:[^"&<>:]|&amp;)*+';
         // a URL attribute value may start with a listed scheme; the rest is a plain value
-        $url = '(?:(?:' . implode('|', self::URL_SCHEMES) . '):)?+' . $value;
+        $url = '(?:(?:' . implode('|', array_map(preg_quote(...), $schemes)) . '):)?+' . $value;
         // CSS with none of the punctuation the CSS check reads (\ escapes, ( every function, @ at-rules, [ selectors,
         // & references) and none of the three bare words on CSS_FORBIDDEN
         $css = '(?:(?!-moz-binding|(?<![a-z0-9-])behavior\s*+:|unicode-range)[^"\\\\()@\[&<>])*+';
@@ -381,7 +385,7 @@ final class HtmlValidator
         // text up to a <, a < that starts nothing (text too), an end tag, or a listed element's start tag with
         // space-separated attributes; as many of those as follow. The lone < needs its next byte in view: the tokenizer
         // may run this over a window of the input, and a < on the window's edge could be the start of <script>
-        return self::$knownSafe[$styles] = '~(?:[^<]++|<(?=[^!/?a-z])|</[a-z][a-z0-9]*+>|<(?:' . implode('|', self::ELEMENTS) . ')(?:' . $space . '++(?:' . $attribute . '))*+' . $space . '*+/?>)++~Ai';
+        return self::$knownSafe[$key] = '~(?:[^<]++|<(?=[^!/?a-z])|</[a-z][a-z0-9]*+>|<(?:' . implode('|', self::ELEMENTS) . ')(?:' . $space . '++(?:' . $attribute . '))*+' . $space . '*+/?>)++~Ai';
     }
 
     //endregion
@@ -444,7 +448,7 @@ final class HtmlValidator
             return;   // inline image data: a browser decodes an img resource as a picture and nothing else, whatever the type
         }
         $allowed = in_array($attribute, self::URL_ATTRIBUTES, true)
-            ? in_array($scheme, self::URL_SCHEMES, true)
+            ? in_array($scheme, self::urlSchemes(), true)
             : !in_array($scheme, self::SCRIPT_SCHEMES, true);
         if (!$allowed) {
             $this->fail('url-scheme-not-allowed', self::excerpt("$attribute=\"$value\""));
@@ -491,6 +495,17 @@ final class HtmlValidator
                 $this->fail('css-not-allowed', self::excerpt("url($url)"));
             }
         }
+    }
+
+    /**
+     * $urlSchemes as the check reads it: lowercase, and never a script scheme, so a site that lists
+     * javascript by mistake keeps the one promise the library makes
+     *
+     * @return string[]
+     */
+    private static function urlSchemes(): array
+    {
+        return array_values(array_diff(array_map(strtolower(...), self::$urlSchemes), self::SCRIPT_SCHEMES));
     }
 
     /**

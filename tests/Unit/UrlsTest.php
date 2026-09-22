@@ -142,7 +142,44 @@ final class UrlsTest extends HtmlValidatorTestCase
     public function testDetailQuotesTheAttributeAsDecoded(): void
     {
         $violation = $this->assertRejects('<a href="javascript&colon;alert(1)">x</a>', 'url-scheme-not-allowed', 'href="javascript:alert(1)"');
-        $this->assertSame('The URL in href="javascript:alert(1)" must start with http:, https:, mailto:, tel:, a relative path, or #', $violation->message);
+        $this->assertSame('The URL in href="javascript:alert(1)" must start with http:, https:, mailto:, tel: or another allowed scheme', $violation->message);
+    }
+
+    //endregion
+    //region The $urlSchemes Setting
+
+    public function testASiteCanChangeTheSchemeList(): void
+    {
+        $this->withSettings(['urlSchemes' => ['https', 'SMS']], function () {
+            foreach ([true, false] as $fastPath) {
+                $this->withSettings(['fastPath' => $fastPath], function () {
+                    $this->assertAccepts('<a href="sms:+16045551234?body=Hi">x</a>');
+                    $this->assertAccepts('<a href="SMS:+16045551234">x</a>');   // the list and the value both read lowercase
+                    $this->assertRejects('<a href="mailto:x@example.com">x</a>', 'url-scheme-not-allowed', 'href="mailto:x@example.com"');
+                });
+            }
+            $this->assertSame(['https', 'sms'], HtmlValidator::rules()['urlSchemes']);
+        });
+    }
+
+    public function testJavascriptStaysRefusedWhateverTheListSays(): void
+    {
+        $this->withSettings(['urlSchemes' => ['https', 'javascript', 'JavaScript']], function () {
+            foreach ([true, false] as $fastPath) {
+                $this->withSettings(['fastPath' => $fastPath], fn() => $this->assertRejects('<a href="javascript:alert(1)">x</a>', 'url-scheme-not-allowed'));
+            }
+            $this->assertSame(['https'], HtmlValidator::rules()['urlSchemes']);
+        });
+    }
+
+    public function testASchemeNameIsMatchedAsWritten(): void
+    {
+        // a . or + in a listed name is that character, not a regex wildcard, on the fast path too
+        $this->withSettings(['urlSchemes' => ['web+coffee', 'a.b']], function () {
+            $this->assertAccepts('<a href="web+coffee:brew">x</a>');
+            $this->assertAccepts('<a href="a.b:x">x</a>');
+            $this->assertRejects('<a href="axb:x">x</a>', 'url-scheme-not-allowed');
+        });
     }
 
     //endregion
