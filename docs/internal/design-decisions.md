@@ -239,6 +239,9 @@ obsolete presentational elements browsers still render (`font`, `center`, `strik
 `tt`, `marquee` and friends), plus any hyphenated custom element, plus Word's `o:`, `v:` and
 `w:` prefixed names. Every other unknown tag is refused. A denylist fails the first time a
 browser adds an element; an allowlist fails the other way, which costs one line, not an XSS.
+The head-level refusals are not cosmetic: a `<meta http-equiv="refresh">` printed between
+two paragraphs navigated the page in Chrome and Firefox on Windows and in Safari on iOS
+(checked 2026-09-21).
 
 Attributes are patterns, not a per-element list: `on*` is refused by prefix, `srcdoc` by
 name, URL attributes by scheme, `style` by CSS check, and everything else passes. A
@@ -265,7 +268,10 @@ was a real false positive.
 The scheme list is the `$urlSchemes` setting, not a constant, because the four defaults are
 the schemes every browser handles itself and a site may want `sms:`, `whatsapp:` or an app
 link, each of which hands the click to whatever program the visitor's machine has registered
-for it. That is the site's call, not the library's: new schemes appear and old programs get
+for it. Checked 2026-09-21 in Chrome and Firefox on Windows: a click on a registered scheme
+(`sms:`, `ms-settings:`) prompts before the program opens, or opens it at once when the
+visitor answered "always" before, and a scheme no program has registered does nothing.
+That is the site's call, not the library's: new schemes appear and old programs get
 bugs (`ms-msdt:` ran commands on one click in 2022), so a blocklist would never be complete.
 `javascript` is refused whatever the list holds, so a line copied from a forum cannot turn
 the check off. The fast path pattern is built from the list and cached by it, so a change
