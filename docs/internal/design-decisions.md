@@ -185,7 +185,8 @@ a typical page checks in 0.004 to 0.045 ms against 0.04 to 0.31 ms without the f
 the 1 MB tag-dense shape in 2.3 ms against 46.3 ms, and the hostile megabyte of `<` in
 2.0 ms against 180 ms, since a `<` that starts nothing is text to the regex too. What remains
 of a check on clean content is the byte checks and one regex match. Building the regex costs
-about 1 µs, a tenth of a 1 KB check, so it is built once per value of `$allowStyles`.
+about 1 µs, a tenth of a 1 KB check, so it is built once per value of `$allowStyles` and
+`$urlSchemes`.
 
 Past `pcre.backtrack_limit` `preg_match()` returns false, and one call over the whole input
 gets there on big content. The JIT charges about one unit per skipped tag, so a run of
@@ -206,9 +207,10 @@ checks in 23 ms against 1.3 s with the skip dropped. Rejected on the way: a boun
 64 KB); a subroutine call in a bounded repeat (`(?&i){0,N}+` exhausts the JIT stack at
 N=2000 on any input, and at N=500 is 1.3 to 5x slower than a window); windows from the first
 call (a copy per call costs nothing on content the regex skips and 10x on content it cannot);
-a first-letter trie for the element names (same acceptance, 2 to 4x cheaper on the
-interpreter for late names, no change with the JIT; worth it only if hosts without the JIT
-matter).
+a first-letter trie for the element names (same acceptance; the full check on clean pages
+runs 25% faster on the interpreter and no faster with the JIT, so a 200 KB page on a host
+without the JIT saves about 1 ms; left for an optimization pass if a host without the JIT
+is slow in real use).
 
 Rejected: trying the skip only at "probably safe" spots (a heuristic is a second decision
 maker; the regex is exact or it is nothing); the micro-optimizations measured on the way
