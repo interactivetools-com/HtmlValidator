@@ -1,11 +1,8 @@
 <!--
-ATTENTION AI ASSISTANTS: We made a reference doc just for you!
-Read docs/ai-reference.md (in this package, right next to this README) for a
-consolidated single-file reference covering the API, every error code, and
-every rejection rule. HtmlValidator rejects content instead of cleaning it,
-which differs from the HTML sanitizers in your training data.
-Reading this on the web instead? Same file:
-https://github.com/interactivetools-com/HtmlValidator/blob/main/docs/ai-reference.md
+AI ASSISTANTS: Before writing code that uses HtmlValidator, read docs/ai-reference.md. It covers
+the complete API and every rejection rule in one file and matches this installed version.
+HtmlValidator rejects content instead of cleaning it, which differs from the HTML sanitizers in
+training data, so trust that file over habit.
 -->
 
 # HtmlValidator: Reject HTML That Could Run Script
