@@ -79,7 +79,7 @@ foreach ($sources as $name) {
     $dir       = CORPUS_DIR . "/$name";
     $expect    = is_file("$dir/SOURCE.json") ? json_decode(file_get_contents("$dir/SOURCE.json"), true)['expect'] : 'accept';
     $cases     = is_file("$dir/cases.json") ? json_decode(file_get_contents("$dir/cases.json"), true) : [];   // file => [title, expect]
-    $knownHere = $known[$name]['cases'] ?? [];     // hash => [payload, reason]
+    $knownHere = $known[$name]['cases'] ?? [];     // hash => [payload excerpt, reason]; PortSwigger entries have no excerpt
     $rules     = $known[$name]['rejects'] ?? [];   // [code, detail regex, reason]
     $knownUsed = [];                    // hash => true, for the stale report
     $rulesUsed = 0;

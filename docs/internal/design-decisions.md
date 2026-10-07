@@ -512,8 +512,12 @@ PortSwigger cheat sheet (copyrighted, downloaded for local testing only), html5s
 DOMPurify's fixtures including its mXSS cases, and the OWASP filter evasion sheet (CC BY-SA).
 Nothing from the corpus is copied into `tests/`. Running a check against a payload on a
 developer's machine is a use those terms allow; the payload lists stay out of the repo, and
-`tools/corpus-known.json` keeps a hash per reviewed case and an excerpt of under 100
-characters so a person can see which case a note is about. The fetch tool keeps each
+`tools/corpus-known.json` keeps a hash and a note per reviewed case. For the openly licensed
+lists it also keeps an excerpt of under 100 characters so a person can see which case a note
+is about. The PortSwigger cheat sheet is copyrighted and not licensed for redistribution, so
+its entries keep only the hash and the note, with no text from the page, not even a short
+excerpt. The cheat sheet is a resource many security teams depend on, and copying none of it
+is the simplest way to respect that. The fetch tool keeps each
 source's license text next to its files, and the committed fixtures are our own: one per
 error code, the TinyMCE round trip, and the accept set written from the ideas the corpus
 surfaced.
