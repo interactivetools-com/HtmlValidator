@@ -6,7 +6,6 @@ namespace Itools\HtmlValidator;
 use Generator;
 
 // import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
-use function ctype_alpha;
 use function preg_match;
 use function preg_quote;
 use function preg_replace;
@@ -14,6 +13,7 @@ use function str_replace;
 use function strlen;
 use function strncasecmp;
 use function strpos;
+use function strspn;
 use function strtolower;
 use function substr;
 
@@ -94,6 +94,11 @@ final class Tokenizer
     private const SKIP_WINDOW = 65536;
 
     /**
+     * The letters that can start a tag name. ASCII only, so a tag reads the same under any setlocale()
+     */
+    private const ASCII_LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+    /**
      * @param string  $html             the document or fragment; must be valid UTF-8
      * @param bool    $switchOnElements read raw-text and RCDATA element content as text (what a browser does)
      * @param string  $state            state to start in, one of the STATE_ constants
@@ -161,7 +166,7 @@ final class Tokenizer
                 yield from $this->markupDeclaration($pos);
             } elseif ($next === '/') {
                 yield from $this->endTagOpen($pos);
-            } elseif ($next !== '' && ctype_alpha($next)) {
+            } elseif (strspn($next, self::ASCII_LETTERS) === 1) {
                 $token = $this->tag($pos, false);
                 if ($token === null) {
                     break;                                      // EOF inside the tag: the token is dropped
@@ -232,7 +237,7 @@ final class Tokenizer
     {
         $html = $this->html;
         $next = $html[$pos + 2] ?? '';
-        if ($next !== '' && ctype_alpha($next)) {
+        if (strspn($next, self::ASCII_LETTERS) === 1) {
             $token = $this->tag($pos, true);
             if ($token !== null) {
                 yield $token;

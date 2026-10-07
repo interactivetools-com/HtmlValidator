@@ -5,7 +5,6 @@ namespace Itools\HtmlValidator;
 
 // import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
 use function chr;
-use function ctype_alnum;
 use function hexdec;
 use function html_entity_decode;
 use function ltrim;
@@ -13,6 +12,7 @@ use function min;
 use function preg_replace_callback;
 use function str_contains;
 use function strlen;
+use function strspn;
 use function substr;
 
 use const ENT_HTML5;
@@ -74,6 +74,9 @@ final class CharacterReferences
     // &#hex or &#decimal or &name, each with an optional semicolon; a bare &# or &#x matches nothing and stays as text
     private const REFERENCE = '/&(?:#[xX]([0-9a-fA-F]+)|#([0-9]+)|([A-Za-z0-9]+));?/';
 
+    // ASCII only, so a reference decodes the same under any setlocale()
+    private const ASCII_ALPHANUMERIC = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
     //endregion
     //region Public API
 
@@ -124,7 +127,7 @@ final class CharacterReferences
             }
             $rest = substr($whole, 1 + $len);                          // what follows the matched name, inside the match
             $next = $rest !== '' ? $rest[0] : ($text[$offset + strlen($whole)] ?? '');
-            if ($inAttribute && ($next === '=' || ctype_alnum($next))) {
+            if ($inAttribute && ($next === '=' || strspn($next, self::ASCII_ALPHANUMERIC) === 1)) {
                 return $whole;                                         // &copy=1 in a URL stays as written
             }
             return $legacy . $rest;
