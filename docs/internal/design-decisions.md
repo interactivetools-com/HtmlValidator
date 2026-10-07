@@ -16,6 +16,7 @@ Contents:
 - [Elements: Allowlist. Attributes: Patterns](#elements-allowlist-attributes-patterns)
 - [URL Schemes: Ten Attributes, and `javascript:` Everywhere](#url-schemes-ten-attributes-and-javascript-everywhere)
 - [Unclosed Markup Rejects](#unclosed-markup-rejects)
+- [A `<` in Raw Text Rejects](#a--in-raw-text-rejects)
 - [CSS by Regex, Plus Two Selectors](#css-by-regex-plus-two-selectors)
 - [`<style>` Is Allowed](#style-is-allowed)
 - [Iframes: A Host List](#iframes-a-host-list)

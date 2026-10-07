@@ -17,6 +17,7 @@ Contents:
 - [Rules: URLs](#rules-urls)
 - [Rules: Iframes](#rules-iframes)
 - [Rules: CSS](#rules-css)
+- [Rules: Text That Is Not Markup](#rules-text-that-is-not-markup)
 - [Rules: Unclosed Markup](#rules-unclosed-markup)
 - [What the Tokenizer Sees](#what-the-tokenizer-sees)
 - [Rule Tables](#rule-tables)
