@@ -97,10 +97,9 @@ input values), URL scheme handling (which characters browsers strip before the s
 `plaintext` content is read. Report the item and whether it widens or narrows what a browser
 will do with an accepted fragment.
 
-Two standing items to re-check each time, because the rules rely on them: browsers still do not
+One standing item to re-check each time, because the rules rely on it: browsers still do not
 strip U+2028, U+2029, no-break space or other Unicode spaces before a URL scheme (a change would
-turn 20-odd known accepts into bypasses), and current browsers still parse `<style>` inside
-`<select>` as a style element (the plan's open question about `allowForms`).
+turn 20-odd known accepts into bypasses).
 
 ## 4. Write the log entry
 
