@@ -13,6 +13,10 @@ on:
         type: choice
         options: ['', '8.1', '8.2', '8.3', '8.4', '8.5', '8.6']
 
+# the jobs only read the code
+permissions:
+  contents: read
+
 jobs:
   test:
     name: PHP ${{ matrix.php }} on ${{ matrix.os }}
