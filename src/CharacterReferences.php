@@ -12,7 +12,6 @@ use function min;
 use function preg_replace_callback;
 use function str_contains;
 use function strlen;
-use function strspn;
 use function substr;
 
 use const ENT_HTML5;
@@ -76,7 +75,16 @@ final class CharacterReferences
     private const REFERENCE = '/&(?:#[xX]([0-9a-fA-F]+)|#([0-9]+)|([A-Za-z0-9]{1,31}));?/';
 
     // ASCII only, so a reference decodes the same under any setlocale()
-    private const ASCII_ALPHANUMERIC = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    private const ASCII_ALPHANUMERIC = [
+        'a' => true, 'b' => true, 'c' => true, 'd' => true, 'e' => true, 'f' => true, 'g' => true, 'h' => true, 'i' => true,
+        'j' => true, 'k' => true, 'l' => true, 'm' => true, 'n' => true, 'o' => true, 'p' => true, 'q' => true, 'r' => true,
+        's' => true, 't' => true, 'u' => true, 'v' => true, 'w' => true, 'x' => true, 'y' => true, 'z' => true,
+        'A' => true, 'B' => true, 'C' => true, 'D' => true, 'E' => true, 'F' => true, 'G' => true, 'H' => true, 'I' => true,
+        'J' => true, 'K' => true, 'L' => true, 'M' => true, 'N' => true, 'O' => true, 'P' => true, 'Q' => true, 'R' => true,
+        'S' => true, 'T' => true, 'U' => true, 'V' => true, 'W' => true, 'X' => true, 'Y' => true, 'Z' => true,
+        '0' => true, '1' => true, '2' => true, '3' => true, '4' => true, '5' => true, '6' => true, '7' => true, '8' => true,
+        '9' => true,
+    ];
 
     //endregion
     //region Public API
@@ -128,7 +136,7 @@ final class CharacterReferences
             }
             $rest = substr($whole, 1 + $len);                          // what follows the matched name, inside the match
             $next = $rest !== '' ? $rest[0] : ($text[$offset + strlen($whole)] ?? '');
-            if ($inAttribute && ($next === '=' || strspn($next, self::ASCII_ALPHANUMERIC) === 1)) {
+            if ($inAttribute && ($next === '=' || isset(self::ASCII_ALPHANUMERIC[$next]))) {
                 return $whole;                                         // &copy=1 in a URL stays as written
             }
             return $legacy . $rest;

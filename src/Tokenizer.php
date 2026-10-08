@@ -13,7 +13,6 @@ use function str_replace;
 use function strlen;
 use function strncasecmp;
 use function strpos;
-use function strspn;
 use function strtolower;
 use function substr;
 
@@ -96,7 +95,14 @@ final class Tokenizer
     /**
      * The letters that can start a tag name. ASCII only, so a tag reads the same under any setlocale()
      */
-    private const ASCII_LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    private const ASCII_LETTERS = [
+        'a' => true, 'b' => true, 'c' => true, 'd' => true, 'e' => true, 'f' => true, 'g' => true, 'h' => true, 'i' => true,
+        'j' => true, 'k' => true, 'l' => true, 'm' => true, 'n' => true, 'o' => true, 'p' => true, 'q' => true, 'r' => true,
+        's' => true, 't' => true, 'u' => true, 'v' => true, 'w' => true, 'x' => true, 'y' => true, 'z' => true,
+        'A' => true, 'B' => true, 'C' => true, 'D' => true, 'E' => true, 'F' => true, 'G' => true, 'H' => true, 'I' => true,
+        'J' => true, 'K' => true, 'L' => true, 'M' => true, 'N' => true, 'O' => true, 'P' => true, 'Q' => true, 'R' => true,
+        'S' => true, 'T' => true, 'U' => true, 'V' => true, 'W' => true, 'X' => true, 'Y' => true, 'Z' => true,
+    ];
 
     /**
      * @param string  $html             the document or fragment; must be valid UTF-8
@@ -166,7 +172,7 @@ final class Tokenizer
                 yield from $this->markupDeclaration($pos);
             } elseif ($next === '/') {
                 yield from $this->endTagOpen($pos);
-            } elseif (strspn($next, self::ASCII_LETTERS) === 1) {
+            } elseif (isset(self::ASCII_LETTERS[$next])) {
                 $token = $this->tag($pos, false);
                 if ($token === null) {
                     break;                                      // EOF inside the tag: the token is dropped
@@ -237,7 +243,7 @@ final class Tokenizer
     {
         $html = $this->html;
         $next = $html[$pos + 2] ?? '';
-        if (strspn($next, self::ASCII_LETTERS) === 1) {
+        if (isset(self::ASCII_LETTERS[$next])) {
             $token = $this->tag($pos, true);
             if ($token !== null) {
                 yield $token;
