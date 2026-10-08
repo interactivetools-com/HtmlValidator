@@ -230,6 +230,28 @@ final class TokenizerTest extends TestCase
         $this->assertSame(' html PUBLIC "x"', $token->data);
     }
 
+    /**
+     * Only ASCII letters start a tag, as in a browser, whatever setlocale() says. A single-byte
+     * locale counts the first byte of a UTF-8 é as a letter. Windows has these locales built in;
+     * elsewhere the test skips when none is installed.
+     */
+    public function testOnlyAsciiLettersStartATagUnderAnyLocale(): void
+    {
+        $previous = setlocale(LC_CTYPE, '0');
+        if (setlocale(LC_CTYPE, 'de_DE.ISO-8859-1', 'de_DE.ISO8859-1', 'German_Germany.1252') === false) {
+            $this->markTestSkipped('No single-byte locale installed');
+        }
+        try {
+            $tokens = $this->tokens('a <é b');
+            $this->assertSame([Token::TEXT], array_values(array_unique(array_column($tokens, 'type'))));
+            $this->assertSame('a <é b', implode('', array_column($tokens, 'data')));
+            $this->assertSame(Token::COMMENT, $this->tokens('</é>')[0]->type);                              // </ and a non-letter is a bogus comment
+            $this->assertSame(['title' => "\u{A9}é"], $this->tokens('<a title="&copyé">')[0]->attributes);   // é is not ASCII alphanumeric, so &copy decodes
+        } finally {
+            setlocale(LC_CTYPE, $previous);
+        }
+    }
+
     /** @return Token[] */
     private function tokens(string $html): array
     {
