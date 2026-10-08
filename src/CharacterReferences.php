@@ -71,8 +71,9 @@ final class CharacterReferences
         0x9C => 0x0153, 0x9E => 0x017E, 0x9F => 0x0178,
     ];
 
-    // &#hex or &#decimal or &name, each with an optional semicolon; a bare &# or &#x matches nothing and stays as text
-    private const REFERENCE = '/&(?:#[xX]([0-9a-fA-F]+)|#([0-9]+)|([A-Za-z0-9]+));?/';
+    // &#hex or &#decimal or &name, each with an optional semicolon; a bare &# or &#x matches nothing and stays as text.
+    // A name stops at 31 letters: the longest is &CounterClockwiseContourIntegral; and the list will never grow
+    private const REFERENCE = '/&(?:#[xX]([0-9a-fA-F]+)|#([0-9]+)|([A-Za-z0-9]{1,31}));?/';
 
     // ASCII only, so a reference decodes the same under any setlocale()
     private const ASCII_ALPHANUMERIC = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
