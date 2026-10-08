@@ -22,7 +22,7 @@ Everything else is left alone, including custom elements and attributes it has n
 It works the way a browser does: it runs the HTML5 tokenizer on the content and checks each
 tag as it comes out. There is no tree and no second parse, so the tags and attributes it
 sees are the ones a browser sees, and memory is a copy of the content plus the current
-token, about twice the content at worst.
+token, about twice the content for ordinary markup.
 
 ## Quick Start
 
