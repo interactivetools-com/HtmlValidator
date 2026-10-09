@@ -351,11 +351,16 @@ never entity-decoded, so a browser shows `&lt;b&gt;` as written.
 
 ## CSS by Regex, Plus Two Selectors
 
-SvgValidator's `CSS_FORBIDDEN` regex, carried over: the backslash, `@import`, `@charset`,
-`image(`, `image-set(`, `src(`, `expression(`, `-moz-binding`, `behavior:`. It works because
-the first thing it bans is the backslash: with no escape syntax, every token reads as
-written and there is no way to spell `url(` that a regex sees differently from a browser.
-Every `url()` gets the scheme check with only `http` and `https` allowed.
+SvgValidator's `CSS_FORBIDDEN` regex, carried over: the backslash, `@import`, `image(`,
+`image-set(`, `src(`, `expression(`, `-moz-binding`, `behavior:`. It works because the
+first thing it bans is the backslash: with no escape syntax, every token reads as written
+and there is no way to spell `url(` that a regex sees differently from a browser. Every
+`url()` gets the scheme check with only `http` and `https` allowed.
+
+Dropped (2026-10-08): SvgValidator's `@charset`. A browser reads it only at the start of a
+stylesheet loaded as its own file; in a `<style>` element or a `style` attribute the page's
+encoding wins and the rule is ignored. No current browser decodes UTF-7, the trick it was
+there for. One corpus file had it, an MDN page.
 
 Added here (settled 2026-09-14): the substring attribute selectors `[attr^=`, `[attr$=`,
 `[attr*=` and `unicode-range`. A `<style>` element with `input[value^="a"] { background:

@@ -117,14 +117,14 @@ final class HtmlValidator
     private const CSS_COMMENT_OR_STRING = '/(?i:url)\(\s*+(?!["\'])(?:[^)\\\\]++|\\\\.)*+\)?+(*SKIP)(*FAIL)|\/\*(?:[^*]++|\*(?!\/))*+(?:\*\/|\z)|"(?:[^"\\\\\n]++|\\\\(?:[0-9a-fA-F]{1,6}[ \t\n]?|.))*+(?:"|\n|\z)|\'(?:[^\'\\\\\n]++|\\\\(?:[0-9a-fA-F]{1,6}[ \t\n]?|.))*+(?:\'|\n|\z)/s';
 
     // CSS that ran script in some browser, hides what the rest of the stylesheet says, or leaks page data:
-    // backslash escapes (\6a avascript), @import and @charset, the image()/image-set()/src() URL functions,
+    // backslash escapes (\6a avascript), @import, the image()/image-set()/src() URL functions,
     // IE expression() and behavior: (as the property name, so scroll-behavior passes), Firefox -moz-binding,
     // and the two selectors that fire on page data so a url() can report it: [attr^=value] with ^= $= *=
     // and @font-face unicode-range.
     // The selector's name run stops at the next [ and is possessive, so a run of brackets or of letters costs
     // one step; a plain * would backtrack across everything after a [ with no ]= behind it. The run also
     // takes *| (the any-namespace prefix), since [*|value^= matches the same attribute
-    private const CSS_FORBIDDEN = '/\\\\|@import|@charset|image\(|image-set\(|src\(|expression\(|-moz-binding|(?<![a-z0-9-])behavior\s*:|\[(?:[^\]=^$*\[]++|\*\|)*+[\^$*]=|unicode-range/i';
+    private const CSS_FORBIDDEN = '/\\\\|@import|image\(|image-set\(|src\(|expression\(|-moz-binding|(?<![a-z0-9-])behavior\s*:|\[(?:[^\]=^$*\[]++|\*\|)*+[\^$*]=|unicode-range/i';
 
     // a backslash inside a quoted url() argument: an escape there still spells a scheme, url("\6a avascript:")
     private const CSS_URL_ESCAPE = '/url\(\s*+["\'][^"\')\\\\]*+\\\\/i';

@@ -329,7 +329,7 @@ Applies to every `style` attribute value (entity-decoded) and to the text inside
 strings are removed first (see below), then two checks run, case-insensitive:
 
 1. Any of these tokens rejects with `css-not-allowed` and the token as the detail: a
-   backslash `\`, `@import`, `@charset`, `image(`, `image-set(`, `src(`, `expression(`,
+   backslash `\`, `@import`, `image(`, `image-set(`, `src(`, `expression(`,
    `-moz-binding`, `behavior:` as a property name (whitespace before the colon allowed;
    `scroll-behavior:` and `overscroll-behavior:` pass), an attribute selector using `^=`,
    `$=` or `*=` (`[value^=`, `[ value ^=`), and `unicode-range`.

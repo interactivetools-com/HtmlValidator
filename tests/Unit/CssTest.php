@@ -38,6 +38,7 @@ final class CssTest extends HtmlValidatorTestCase
             'word paste'            => ['mso-bidi-font-weight: normal; tab-stops: 36.0pt'],
             'position fixed'        => ['position: fixed; top: 0; z-index: 9999'],   // a phishing overlay, not script: a known non-goal
             'scroll-behavior'       => ['scroll-behavior: smooth; overscroll-behavior: contain'],
+            'charset'               => ["@charset 'UTF-7';"],   // read only at the start of a stylesheet file, never in a page
             'empty'                 => [''],
         ];
     }
@@ -75,7 +76,6 @@ final class CssTest extends HtmlValidatorTestCase
             'behavior underscore'   => ['_behavior: url(x.htc)', 'behavior:'],   // and IE6 read _behavior
             'moz-binding'           => ['-moz-binding: url(x.xml#a)', '-moz-binding'],
             'import'                => ['@import url(https://example.com/x.css)', '@import'],
-            'charset'               => ['@charset "UTF-7"', '@charset'],
             'backslash escape'      => ['width: e\\78 pression(alert(1))', '\\'],
             'image function'        => ['background: image(x.png)', 'image('],
             'image-set function'    => ['background: image-set(x.png 1x)', 'image-set('],
