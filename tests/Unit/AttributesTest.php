@@ -101,6 +101,7 @@ final class AttributesTest extends HtmlValidatorTestCase
             'mailchimp marker'     => ['<td mc:edit="body">x</td>', 'mc:edit'],
             'bare xmlns'           => ['<p xmlns="http://www.w3.org/1999/xhtml">x</p>', 'xmlns'],
             'made-up name'         => ['<p sku="A-100">x</p>', 'sku'],
+            'unlisted word name'   => ['<v:imagedata src="/x.png" cropbottom="5f"></v:imagedata>', 'cropbottom'],
             'on a word element'    => ['<o:p x-init="alert(1)">x</o:p>', 'x-init'],
             'prefix inside a name' => ['<p x-o:spid="1">x</p>', 'x-o:spid'],
         ];

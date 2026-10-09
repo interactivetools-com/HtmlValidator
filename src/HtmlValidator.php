@@ -103,13 +103,16 @@ final class HtmlValidator
         'nowrap', 'rules', 'scrolling', 'summary', 'valign', 'vspace',
         'allowtransparency', 'mozallowfullscreen', 'webkitallowfullscreen',
 
-        // Word drawings (VML), which no current browser draws. Listed so a Word paste is not refused for markup
-        // nobody can see in the editor
+        // VML drawings from Word pastes, and fill and stroke from the Outlook buttons in email templates. No current
+        // browser draws VML; listed so a paste is not refused for markup nobody can see in the editor
         'arcsize', 'arrowok', 'aspectratio', 'coordsize', 'eqn', 'fill', 'fillcolor', 'filled', 'from', 'gradientshapeok',
         'inset', 'joinstyle', 'opacity', 'path', 'stroke', 'strokecolor', 'stroked', 'strokeweight', 'to',
 
         // Word content controls (<w:sdt>): placeholder and data-binding settings only Word reads
         'docpart', 'prefixmappings', 'sdttag', 'showingplchdr', 'storeitemid', 'temporary', 'text', 'xpath',
+
+        // Word smart tag declarations (<o:SmartTagType namespaceuri="urn:schemas-microsoft-com:office:smarttags">)
+        'namespaceuri',
     ];
 
     /**

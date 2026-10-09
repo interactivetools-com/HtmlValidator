@@ -487,7 +487,7 @@ clear compact face frame frameborder hspace longdesc marginheight marginwidth no
 scrolling summary valign vspace allowtransparency mozallowfullscreen webkitallowfullscreen arcsize
 arrowok aspectratio coordsize eqn fill fillcolor filled from gradientshapeok inset joinstyle opacity
 path stroke strokecolor stroked strokeweight to docpart prefixmappings sdttag showingplchdr
-storeitemid temporary text xpath
+storeitemid temporary text xpath namespaceuri
 ```
 <!-- /rules:attributes -->
 

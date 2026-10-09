@@ -282,9 +282,42 @@ Left out with no switch:
 - **Mailchimp's `mc:*`.** Only in raw Mailchimp templates. One line when a site needs them.
 
 The list is flat because what matters is whether a name is a framework hook, not which element
-carries it; a per-element list is what made HTMLPurifier drop HTML5. Word's names come from
-the corpus's Word pastes; Microsoft's VML reference has more, added when a real paste shows
-one. VML's `on` attribute (`<v:fill on="f">`) falls under the `on*` rule; no paste has it.
+carries it; a per-element list is what made HTMLPurifier drop HTML5. Word's names are the
+ones on drawings and content controls in the corpus's Word pastes, plus `namespaceuri` (on
+`<o:SmartTagType>`, in 40 stored articles on one client site). `fill` and `stroke` are from
+the Outlook VML buttons in email templates (`<v:rect fill="true" stroke="false">`).
+
+Considered and left out (2026-10-08): about 90 more names Word 2007 and later write, found in
+CKEditor's paste test files, 254 Word-saved `.htm` files on GitHub and Microsoft's VML
+schemas. None holds a URL and no framework reads one, but no stored content in the client
+databases has any of them: an editor strips or rewrites most of a raw Word paste before the
+save. Add a group when a real site's paste needs it:
+
+- **Images** (`<v:imagedata>`): `cropleft`, `croptop`, `cropright`, `cropbottom`, `chromakey`,
+  `gain`, `blacklevel`
+- **Shapes** (`<v:shape>`, `<v:shapetype>`, `<v:group>`, `<v:path>`, `<v:h>`, `<o:lock>`):
+  `adj`, `coordorigin`, `wrapcoords`, `editas`, `textboxrect`, `fillok`, `textpathok`, `limo`,
+  `position`, `xrange`, `yrange`, `polar`, `radiusrange`, `switch`, `shapetype`, `rotation`
+- **Fills, lines, shadows, WordArt** (`<v:fill>`, `<v:stroke>`, `<v:shadow>`, `<v:textpath>`):
+  `color2`, `focus`, `focusposition`, `focussize`, `colors`, `rotate`, `recolor`, `endarrow`,
+  `startarrow`, `endarrowwidth`, `endarrowlength`, `startarrowwidth`, `startarrowlength`,
+  `miterlimit`, `linestyle`, `offset`, `offset2`, `origin`, `matrix`, `string`, `fitshape`,
+  `fitpath`, `trim`
+- **Text wrap and tabs** (`<w:wrap>`, `<w:ptab>`): `anchorx`, `anchory`, `side`, `alignment`,
+  `relativeto`, `leader`
+- **Content controls** (`<w:sdt>`, `<w:listitem>`): `sdtdocpart`, `docparttype`,
+  `docpartunique`, `calendar`, `maptodatetime`, `calendartype`, `dateformat`, `date`,
+  `multiline`, `dropdown`, `citation`, `bibliography`, `checkbox`, `checkboxischecked`,
+  `checkboxvaluechecked`, `checkboxvalueunchecked`, `checkboxfontchecked`,
+  `checkboxfontunchecked`, `listvalue`, `datavalue`
+
+Two things refuse those pastes whatever the list says. VML's `on` attribute
+(`<v:shadow on="t">`, in 14 of the files) falls under the `on*` rule, and an exception there
+is not worth what it saves. Word's clipboard images point at
+`file:///.../msohtmlclip1/clip_image001.png`, which fails the URL check. Names that only
+appear inside `<xml>` blocks (`progid`, `spidmax`, the latent-style names) need nothing,
+since `<xml>` is refused, and the ones that hold a URL or markup (`althref`, `sigprovurl`,
+`equationxml`, `addlxml`) appear in no paste and stay out.
 
 `xmlns:*` takes only Office namespaces because of pages served as XHTML, where
 `<o:script xmlns:o="http://www.w3.org/1999/xhtml">` is a script (the same trick as
