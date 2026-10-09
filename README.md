@@ -134,6 +134,17 @@ rather than a tokenizer (a parsed DOCTYPE, the script-data and CDATA states) and
 lone-surrogate inputs, so tags and attributes come out the way browsers read them. The rules
 are checked against the PortSwigger, html5sec, DOMPurify and OWASP payload lists.
 
+## How the Rules Are Built
+
+Every rule is an allowlist except the CSS check.
+
+- **Elements and attributes.** A name passes only if it is on the list: the HTML Standard's
+  names minus the ones above, plus `aria-*` and the names Word adds to a paste.
+- **URLs.** A URL passes only with a scheme from `$urlSchemes`, or no scheme, plus
+  `data:image/` on `<img src>`.
+- **CSS.** A list of the safe parts would be most of CSS, so the check refuses the tokens
+  named above instead. `url()` is the exception: `http:`, `https:` or a relative path only.
+
 ## What It Does Not Check
 
 Everything here is real, and none of it runs script. It is left to the page, or to a rule of
