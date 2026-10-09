@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Itools\HtmlValidator;
 
 // import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
-use function addcslashes, array_diff, array_intersect, array_map, array_unique, array_values, count, implode, in_array, preg_match, preg_match_all, preg_quote, preg_replace, str_replace, str_starts_with, stripos, strlen, strncasecmp, strpos, strtolower, substr, trim;
+use function addcslashes, array_diff, array_intersect, array_map, array_values, count, implode, in_array, preg_match, preg_match_all, preg_quote, preg_replace, str_replace, str_starts_with, stripos, strlen, strncasecmp, strpos, strtolower, substr, trim;
 
 use const PREG_OFFSET_CAPTURE;
 
@@ -426,11 +426,11 @@ final class HtmlValidator
         // CSS with none of the punctuation the CSS check reads (\ escapes, ( every function, @ at-rules, [ selectors,
         // & references) and none of the three bare words on CSS_FORBIDDEN
         $css = '(?:(?!-moz-binding|(?<![a-z0-9-])behavior\s*+:|unicode-range)[^"\\\\()@\[&<>])*+';
-        // style="css" when styles are on; a URL attribute with a url; any other listed name or aria-*, with a value
+        // style="css" when styles are on; a URL attribute with a url; a common name or aria-*, with a value
         $urlNames   = array_diff(self::URL_ATTRIBUTES, self::FORM_ATTRIBUTES);
-        // the regex tries the names in order until one matches, so the ones editors write most go first
-        $common     = array_intersect(['class', 'id', 'title', 'alt', 'width', 'height', 'lang', 'align', 'valign', 'border', 'cellpadding', 'cellspacing', 'colspan', 'rowspan', 'target', 'rel'], self::ATTRIBUTES);
-        $plainNames = array_map(preg_quote(...), array_unique([...$common, ...array_diff(self::ATTRIBUTES, $urlNames, ['style'])]));
+        // only the names editors write most, and only while they are listed: a tag with any other name gets the same
+        // check from the tokenizer, and listing every allowed name made the regex slower and 500 KB bigger under PCRE's JIT
+        $plainNames = array_intersect(['class', 'id', 'title', 'alt', 'width', 'height', 'lang', 'align', 'valign', 'border', 'cellpadding', 'cellspacing', 'colspan', 'rowspan', 'target', 'rel'], self::ATTRIBUTES);
         $attribute  = ($styles ? 'style="' . $css . '"|' : '')
             . '(?:' . implode('|', $urlNames) . ')="' . $url . '"'
             . '|(?:' . implode('|', $plainNames) . '|aria-[a-z0-9-]*+)="' . $value . '"';

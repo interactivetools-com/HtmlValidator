@@ -201,7 +201,9 @@ the 1 MB tag-dense shape in 2.3 ms against 46.3 ms, and the hostile megabyte of 
 2.0 ms against 180 ms, since a `<` that starts nothing is text to the regex too. What remains
 of a check on clean content is the byte checks and one regex match. Building the regex costs
 about 1 µs, a tenth of a 1 KB check, so it is built once per value of `$allowStyles` and
-`$urlSchemes`.
+`$urlSchemes`. Outside `style`, `aria-*` and the URL attributes it lists only the sixteen
+attribute names editors write most. With the whole allowlist the regex took 500 KB more memory
+under PCRE's JIT on PHP 8.5 and checked the corpus 5% slower (dedicated server, 2026-10-08).
 
 Past `pcre.backtrack_limit` `preg_match()` returns false, and one call over the whole input
 gets there on big content. The JIT charges about one unit per skipped tag, so a run of
