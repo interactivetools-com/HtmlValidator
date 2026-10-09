@@ -8,8 +8,8 @@ use Itools\HtmlValidator\Tests\Support\HtmlValidatorTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
- * Which elements get through: the allowlist, custom elements, the elements with a switch
- * (style, iframe, forms), and everything refused with no switch.
+ * Which elements get through: the allowlist, Word's prefixed names, the elements with a switch
+ * (style, iframe, forms), and everything refused with no switch, custom elements included.
  *
  * Code: element-not-allowed. Attribute values are covered in AttributesTest, UrlsTest and CssTest.
  */
@@ -38,26 +38,24 @@ final class ElementsTest extends HtmlValidatorTestCase
         $this->assertRejects('<SCRIPT>x</SCRIPT>', 'element-not-allowed', '<SCRIPT>');
     }
 
-    #[DataProvider('customElementProvider')]
-    public function testCustomElement(string $element, bool $allowed): void
+    /**
+     * A page script can define a custom element and run its own code for every copy in the content, so they are unknown
+     */
+    #[DataProvider('unknownElementProvider')]
+    public function testUnknownElement(string $element): void
     {
-        $html = "<$element>x</$element>";
-        if ($allowed) {
-            $this->assertAccepts($html);
-        } else {
-            $this->assertRejects($html, 'element-not-allowed', "<$element>");
-        }
+        $this->assertRejects("<$element>x</$element>", 'element-not-allowed', "<$element>");
     }
 
-    public static function customElementProvider(): array
+    public static function unknownElementProvider(): array
     {
         return [
-            'hyphenated name'        => ['my-widget', true],
-            'digits and dots'        => ['x-1.0_b-c', true],
-            'hyphen at the end'      => ['widget-', true],
-            'no hyphen'              => ['widget', false],
-            'namespace prefix'       => ['svg:rect', false],
-            'less-than in the name'  => ['a<b', false],
+            'custom element'         => ['my-widget'],
+            'digits and dots'        => ['x-1.0_b-c'],
+            'hyphen at the end'      => ['widget-'],
+            'no hyphen'              => ['widget'],
+            'namespace prefix'       => ['svg:rect'],
+            'less-than in the name'  => ['a<b'],
         ];
     }
 
@@ -101,14 +99,9 @@ final class ElementsTest extends HtmlValidatorTestCase
         $result = HtmlValidator::check($html);
         $this->assertSame(['<?import namespace="t" implementation="#default#time2">', '<t:set attributeName="innerHTML" to="x"/>'], array_column($result->errors, 'detail'));
 
-        // the prefix was arbitrary in IE, so with a Word prefix the import is the one thing that rejects
+        // the prefix was arbitrary in IE, so with a Word prefix the import is what rejects
         $this->assertRejects('<?IMPORT namespace="o" implementation="#default#time2"><o:set attributeName="innerHTML" to="x"/>', 'element-not-allowed', '<?IMPORT namespace="o" implementation="#default#time2">');
         $this->assertAccepts('<?xml:namespace prefix="o" ns="urn:schemas-microsoft-com:office:office"/><o:p></o:p>');
-    }
-
-    public function testUnknownAttributesOnAllowedElementsPass(): void
-    {
-        $this->assertAccepts('<div class="a" id="b" data-x="1" aria-label="c" role="d" contenteditable draggable="true" unknown="e">x</div>');
     }
 
     //endregion

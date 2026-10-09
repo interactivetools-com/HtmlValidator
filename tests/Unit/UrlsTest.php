@@ -122,21 +122,21 @@ final class UrlsTest extends HtmlValidatorTestCase
             'background on table'        => ['<table background="javascript:alert(1)"></table>'],
             'ping'                       => ['<a href="/x" ping="javascript:alert(1)">x</a>'],
             'srcset'                     => ['<img srcset="javascript:alert(1) 1x">'],
-            'custom element'             => ['<my-link href="javascript:alert(1)">x</my-link>'],
-            'unknown attribute'          => ['<p title="javascript:alert(1)">x</p>'],
-            'data attribute'             => ['<tr data-href="javascript:alert(1)">'],   // a clickable-row script would set location to it
-            'custom element attribute'   => ['<my-link url="javascript:alert(1)">x</my-link>'],
-            'xlink:href'                 => ['<a xlink:href="javascript:alert(1)">x</a>'],
+            'word element'               => ['<v:roundrect href="javascript:alert(1)">x</v:roundrect>'],
+            'plain attribute'            => ['<p title="javascript:alert(1)">x</p>'],
+            'value attribute'            => ['<li value="javascript:alert(1)">'],   // a script that copies a value into a link runs it
+            'prefixed attribute'         => ['<p aria-describedby="javascript:alert(1)">x</p>'],
+            'word attribute'             => ['<v:shape o:href="javascript:alert(1)">x</v:shape>'],
         ];
     }
 
     public function testOtherAttributesOnlyRefuseJavascript(): void
     {
-        $this->assertAccepts('<p title="Note: see below" alt="Warning: hot" data-time="noon:sharp" content="width=device-width">x</p>');
+        $this->assertAccepts('<p title="Note: see below" alt="Warning: hot" aria-label="noon:sharp" content="width=device-width">x</p>');
         $this->assertAccepts('<a href="/x" title="ftp://example.com/">x</a>');
-        $this->assertAccepts('<p title="vbscript:x" data-src="data:image/png;base64,iVBORw0KGgo=">x</p>');   // no current browser runs either as the page
-        $this->assertAccepts('<my-chart data="Note: x" xmlns:o="urn:schemas-microsoft-com:office:office">x</my-chart>');   // URLs only on <object> and <svg>, both refused
-        $this->assertRejects('<p data-href="javascript:alert(1)">x</p>', 'url-scheme-not-allowed', 'data-href="javascript:alert(1)"');
+        $this->assertAccepts('<p title="vbscript:x" aria-description="data:image/png;base64,iVBORw0KGgo=">x</p>');   // no current browser runs either as the page
+        $this->assertAccepts('<p data="Note: x" xmlns:o="urn:schemas-microsoft-com:office:office">x</p>');   // URLs only on <object> and <svg>, both refused
+        $this->assertRejects('<p aria-label="javascript:alert(1)">x</p>', 'url-scheme-not-allowed', 'aria-label="javascript:alert(1)"');
     }
 
     public function testDetailQuotesTheAttributeAsDecoded(): void

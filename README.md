@@ -17,7 +17,8 @@ A sanitizer rewrites everything it touches: it closes tags, re-encodes entities,
 every element it has no definition for, which for most PHP sanitizers means every HTML5
 element. What comes back is not what the editor saved, and nobody can explain the difference
 to the person who typed it. HtmlValidator refuses the content instead and names the problem.
-Everything else is left alone, including custom elements and attributes it has never seen.
+Everything else passes as it was saved. The elements and attributes it accepts come from the
+HTML Standard's own lists.
 
 It works the way a browser does: it runs the HTML5 tokenizer on the content and checks each
 tag as it comes out. There is no tree and no second parse, so the tags and attributes it
@@ -88,8 +89,9 @@ field runs for every visitor and every admin who opens the page, with their sess
 
 So there are two places to call it: at the save, to refuse the content with a reason, and on
 stored content before an editor or a page shows it, since most of those paths never pass
-through a save handler. The check refuses everything that runs script in a current browser,
-and everything that would let a payload hide from the check itself. Nothing else.
+through a save handler. The check refuses everything that runs script in a current browser or
+through the page's own scripts, and everything that would let a payload hide from the check
+itself.
 
 - **Anything that runs script.** `<script>`, every `on*` attribute, `srcdoc`, and the plugin
   elements `<object>`, `<embed>` and `<applet>`, which load a document that runs script of its
@@ -98,7 +100,11 @@ and everything that would let a payload hide from the check itself. Nothing else
   and an unknown scheme asks the visitor's machine to open whatever program is registered for
   it. The one exception is `data:image/...` on `<img src>`, which a browser shows as a picture
   and nothing else. `javascript:` is refused at the start of every attribute value, even one
-  the browser ignores, because a page script that copies `data-href` into a link runs it.
+  the browser ignores, because a page script that copies the value into a link runs it.
+- **Anything the page's own scripts could run.** Alpine runs `x-init`, HTMX sends `hx-get`,
+  Stimulus reads `data-action`, and a page can define `<my-widget>` with code of its own. So
+  every element and attribute must be on a list from the HTML Standard, plus `aria-*` and what
+  Word adds to a paste. `data-*` and custom elements are refused.
 - **Anything that could hide a payload from the check.** The check reads the content the way a
   browser does, tag by tag, so it refuses every construct that a browser and another parser
   read differently: `<template>`, `<noscript>`, `<xmp>`, `<plaintext>`, `<svg>`, `<math>`,
@@ -135,8 +141,8 @@ your own, because a check for it would refuse ordinary content for no gain in sa
 
 - **Where you print it.** An accepted fragment is safe as body content. Printed inside a
   `<script>`, a `<style>`, an attribute value, or a `<textarea>`, any text is something else.
-- **Whether the HTML is valid.** An unclosed `<p>`, wrong nesting, and attributes nothing
-  defines all pass; browsers render them and no script runs.
+- **Whether the HTML is valid.** An unclosed `<p>`, wrong nesting, and an attribute on the
+  wrong element (`<p href>`) all pass; browsers render them and no script runs.
 - **Tracking.** An `<img>` on another host, a CSS `url()` to another host, and a `ping`
   attribute all pass. An image loads no script.
 - **Layout tricks.** `position: fixed`, `z-index` and a giant `<div>` can cover the page with
@@ -155,6 +161,8 @@ your own, because a check for it would refuse ordinary content for no gain in sa
   [HTMLPurifier](http://htmlpurifier.org/), which returns trimmed output instead.
 - **Content with inline SVG or MathML.** Both are refused with no switch. Upload SVG as a
   file, check it with SvgValidator, and link it from `<img src>`.
+- **Markup for a front-end framework.** `data-*` attributes and custom elements are refused
+  with no switch, so markup for Alpine, HTMX, Stimulus or web components does not pass.
 - **A "clean it for me" button.** There is no output to hand back. Run a sanitizer for that
   and check what it returns.
 

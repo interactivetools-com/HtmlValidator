@@ -13,10 +13,6 @@
                 "payload": "<a href=\"#\">",
                 "reason": "bluemonday's test policy drops a # link; a fragment link runs nothing"
             },
-            "914597022b9b": {
-                "payload": "<p data-xml-prefix=\"dave\">text</p>",
-                "reason": "the test policy drops data-* attributes; they pass here by design"
-            },
             "cc4c31694c7e": {
                 "payload": "<img src=\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAA...",
                 "reason": "a data: image on img src passes by design: a browser decodes an img resource as a picture and nothing else"
@@ -125,10 +121,6 @@
                 "payload": "<a href=\"https://abc&quot;&gt;<script&gt;alert(1)<&#x2f;script/\">",
                 "reason": "the script tag is inside the quoted href value, so it is part of an https URL"
             },
-            "3b6db1d38dc6": {
-                "payload": "Hello <span class=\"><script src=\"http://hackers.org/XSS.js\"></script>\"...",
-                "reason": "the script tag is inside the quoted class value; what follows are junk attributes on the span"
-            },
             "4370bdb5d003": {
                 "payload": "Hello <span class=\"><script src='http://hackers.org/XSS.js'></script>\"...",
                 "reason": "the script tag is inside the quoted class value; what follows are junk attributes on the span"
@@ -140,12 +132,15 @@
             "31d3d2e03147": {
                 "payload": "<p style=\"width:100%;height:100%;background-image: url('data:image/svg...",
                 "reason": "data: inside a CSS url() is refused with every data: URL"
-            },
-            "dee134c056e7": {
-                "payload": "<IMG SRC=`javascript:alert(\"RSnake says, 'XSS'\")`>",
-                "reason": "backtick quoting; per HTML5 the unquoted value starts at the backtick and no handler attribute exists"
             }
-        }
+        },
+        "rejects": [
+            {
+                "code": "attribute-not-allowed",
+                "detail": ".",
+                "reason": "data-* and made-up attribute names in the test inputs; unknown attribute names are refused by design, since a page's own scripts read some of them as code"
+            }
+        ]
     },
     "cerberus": {
         "rejects": [
@@ -232,17 +227,9 @@
                 "payload": "<div id=\"46\"><div style=\"font-family:foo}color=red;\">XXX</div>//[\"'`--...",
                 "reason": "} and = inside a CSS value; only old IE read them as a new declaration"
             },
-            "74db1e9a43aa": {
-                "payload": "<div id=\"57\"><b <script>alert(57)//</script>0</script></b>//[\"'`-->]]>...",
-                "reason": "<script is an attribute name on b, not a tag; no script element exists"
-            },
             "76fd449f5dfe": {
                 "payload": "<div id=\"60\"><div style=\"[a]color[b]:[c]red\">XXX</div>//[\"'`-->]]>]</d...",
                 "reason": "[a] inside a CSS property; only old IE ignored the brackets"
-            },
-            "d3d9f2ed7db4": {
-                "payload": "<div id=\"78\"><?xml-stylesheet type=\"text/xsl\" href=\"#\"?><img xmlns=\"x-...",
-                "reason": "xml-stylesheet processing instruction (a bogus comment) and an IE XDR schema; IE-only"
             },
             "d3889bf66595": {
                 "payload": "<div id=\"80\"><style>*{x:ｅｘｐｒｅｓｓｉｏｎ(alert(80))}</style>//[\"'`-->]]>]</d...",
@@ -255,10 +242,6 @@
             "47d7632fb16c": {
                 "payload": "<div id=\"92\"><div style=\"background:url(http://foo.f/f oo/;color:red/*...",
                 "reason": "url() with a space and a comment inside; only old IE read past the space"
-            },
-            "b2753f743a5b": {
-                "payload": "<div id=\"102\"><img src=\"x` `<script>alert(102)</script>\"` `>//[\"'`-->]...",
-                "reason": "backtick quoting; per HTML5 the script tag is inside the double-quoted src value"
             },
             "c4629ebe5339": {
                 "payload": "<div id=\"108\"><!-- IE 5-8 standards mode --> <a href=http://foo.bar/#x...",
@@ -283,10 +266,6 @@
             "28966ad46c60": {
                 "payload": "<!-- more soon -->",
                 "reason": "a placeholder comment in DOMPurify's list, not a payload"
-            },
-            "a22097b757cf": {
-                "payload": "<b is=\"foo\">bar</b>",
-                "reason": "the is= attribute for customized built-in elements; needs a page script that defined the name, not an attack"
             }
         }
     },
@@ -323,6 +302,11 @@
                 "code": "element-not-allowed",
                 "detail": "^<image\\b",
                 "reason": "browsers rewrite image to img while building the tree; it is refused by design: not a spec element, and only attack sets use it"
+            },
+            {
+                "code": "attribute-not-allowed",
+                "detail": ".",
+                "reason": "tokenizer tests with made-up attribute names; unknown attribute names are refused by design"
             }
         ]
     },
@@ -344,10 +328,6 @@
                 "payload": "<div style=\"font-family:foo}color=red;\">XXX</div>",
                 "reason": "} and = inside a CSS value; only old IE read them as a new declaration"
             },
-            "bf586ead2518": {
-                "payload": "<b <script>alert(1)//</script>0</script></b>",
-                "reason": "<script is an attribute name on b, not a tag; no script element exists"
-            },
             "faaee2a37607": {
                 "payload": "<div style=\"[a]color[b]:[c]red\">XXX</div>",
                 "reason": "[a] inside a CSS property; only old IE ignored the brackets"
@@ -355,10 +335,6 @@
             "fd221a686275": {
                 "payload": "<// style=x:expression\\28write(1)\\29>",
                 "reason": "<// starts a bogus comment, so nothing here is a tag; and expression() is IE-only"
-            },
-            "32171c59665a": {
-                "payload": "<?xml-stylesheet type=\"text/xsl\" href=\"#\"?><img xmlns=\"x-schema:test.x...",
-                "reason": "xml-stylesheet processing instruction (a bogus comment) and an IE XDR schema; IE-only"
             },
             "039a297d6f66": {
                 "payload": "<style>*{x:ｅｘｐｒｅｓｓｉｏｎ(write(1))}</style>",
@@ -379,10 +355,6 @@
             "ad8b45488e6c": {
                 "payload": "<a href=\"[a]java[b]script[c]:alert(1)\">XXX</a>",
                 "reason": "the scheme as written is [a]java[b]script[c], which nothing resolves; the case is about characters old IE skipped"
-            },
-            "d8ee2690e183": {
-                "payload": "<img src=\"x` `<script>alert(1)</script>\"` `>",
-                "reason": "backtick quoting; per HTML5 the script tag is inside the double-quoted src value"
             },
             "d745e5378a5e": {
                 "payload": "<!-- IE 5-8 standards mode --> <a href=http://foo.bar/#x=`y></a><img a...",
@@ -406,12 +378,26 @@
             }
         }
     },
+    "mailchimp": {
+        "rejects": [
+            {
+                "code": "attribute-not-allowed",
+                "detail": "^mc:",
+                "reason": "Mailchimp's template markers (mc:edit, mc:label); only Mailchimp's editor reads them, and they stay off the attribute list until a site needs them"
+            }
+        ]
+    },
     "mdn": {
         "rejects": [
             {
                 "code": "iframe-host",
                 "detail": "^about:blank$",
                 "reason": "MDN live samples are iframes to about:blank; embeds from unknown hosts are refused by design"
+            },
+            {
+                "code": "element-not-allowed",
+                "detail": "^<[a-z][a-z0-9._]*-",
+                "reason": "MDN's own custom elements (interactive-example, mdn-scrim-inline); custom elements are refused by design, since a page script can define one"
             }
         ]
     },
@@ -541,6 +527,11 @@
                 "code": "less-than-in-text",
                 "detail": "^<",
                 "reason": "a < inside <style> content is refused by design: text to a browser, a tag to strip_tags() with an allow list or to an HTML4-era DOM"
+            },
+            {
+                "code": "attribute-not-allowed",
+                "detail": ".",
+                "reason": "sanitizer tests with made-up attribute names (--, __foo, style1, bad, quote fragments); unknown attribute names are refused by design"
             }
         ]
     },
@@ -702,14 +693,6 @@
                 "payload": "<![><img src=\"]><img src=x onerror=javascript:alert(1)//\">",
                 "reason": "<![> is a bogus comment and the second img is inside the quoted src value; only old IE read CDATA here"
             },
-            "a9b6df398ecb": {
-                "payload": "<b <script>alert(1)</script>0",
-                "reason": "<script is an attribute name on b, not a tag; no script element exists"
-            },
-            "988021570afc": {
-                "payload": "<img src=\"x` `<script>javascript:alert(1)</script>\"` `>",
-                "reason": "backtick quoting; per HTML5 the script tag is inside the double-quoted src value"
-            },
             "02531d0f23d2": {
                 "payload": "<a href=http://foo.bar/#x=`y></a><img alt=\"`><img src=x:x onerror=java...",
                 "reason": "backtick quoting in IE 5 to 9; per HTML5 the inner img is inside the quoted alt value"
@@ -760,10 +743,6 @@
             },
             "7481e56041e0": {
                 "payload": "<IMG SRC=`javascript:javascript:alert(1)`>",
-                "reason": "backtick quoting; per HTML5 the unquoted value starts at the backtick and no handler attribute exists"
-            },
-            "dee134c056e7": {
-                "payload": "<IMG SRC=`javascript:alert(\"RSnake says, 'XSS'\")`>",
                 "reason": "backtick quoting; per HTML5 the unquoted value starts at the backtick and no handler attribute exists"
             },
             "d7b9c18507b8": {
@@ -882,18 +861,6 @@
                 "payload": "<?xml:namespace prefix=\"t\" ns=\"urn:schemas-microsoft-com:time\">",
                 "reason": "a processing instruction, which is a bogus comment in HTML; the IE HTML+TIME feature behind it is gone"
             },
-            "01937121d833": {
-                "payload": "</C></X></xml><SPAN DATASRC=#I DATAFLD=C DATAFORMATAS=HTML></SPAN>",
-                "reason": "IE data binding (DATASRC, DATAFORMATAS=HTML); IE-only"
-            },
-            "1ef7d31c66d0": {
-                "payload": "<SPAN DATASRC=\"#xss\" DATAFLD=\"B\" DATAFORMATAS=\"HTML\"></SPAN>",
-                "reason": "IE data binding (DATASRC, DATAFORMATAS=HTML); IE-only"
-            },
-            "d2115ab44789": {
-                "payload": "<SPAN DATASRC=#I DATAFLD=C DATAFORMATAS=HTML></SPAN>",
-                "reason": "IE data binding (DATASRC, DATAFORMATAS=HTML); IE-only"
-            },
             "1845c6c25d58": {
                 "payload": "echo('IPT>alert(\"XSS\")</SCRIPT>'); ?>",
                 "reason": "a line cut from a multi-line vector; on its own it is text and end tags"
@@ -943,6 +910,11 @@
                 "code": "element-not-allowed",
                 "detail": "^<(svg|math)\\b",
                 "reason": "inline SVG and MathML are refused by design, whatever is inside them"
+            },
+            {
+                "code": "element-not-allowed",
+                "detail": "^<[a-z][a-z0-9._]*-",
+                "reason": "custom elements are refused by design, since a page script can define one"
             }
         ]
     },
@@ -962,6 +934,11 @@
                 "code": "url-scheme-not-allowed",
                 "detail": "^href=\"news:",
                 "reason": "news: is not on the scheme allowlist; rare enough to stay refused"
+            },
+            {
+                "code": "attribute-not-allowed",
+                "detail": "^data-",
+                "reason": "MediaWiki's data-mw-* and data-sort-value; data-* is refused by design, since a page script can run code from it"
             }
         ]
     },
@@ -971,14 +948,17 @@
                 "payload": "<!-- wp:media-text {\"mediaId\":1613,\"mediaType\":\"image\"} --> <div class=\"wp-block-media-text...",
                 "reason": "a typo in the sample (src=\"ttps://...\"), a problem in the sample and not in the rule"
             }
-        }
+        },
+        "rejects": [
+            {
+                "code": "attribute-not-allowed",
+                "detail": "^data-",
+                "reason": "block editor attributes (data-id, data-link, data-object-fit); data-* is refused by design, since a page script can run code from it"
+            }
+        ]
     },
     "wpt": {
         "cases": {
-            "a5668ce30cc0": {
-                "payload": "<p data-x=\"1\" data-y=\"2\" data-z=\"3\">",
-                "reason": "that case's config removes data attributes; nothing in it runs"
-            },
             "060609f02907": {
                 "payload": "<a nothref=\"javascript:alert(1)\"></a>",
                 "reason": "javascript: is refused in every attribute by design; the Sanitizer API only checks URL attributes"

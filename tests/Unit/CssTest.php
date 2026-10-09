@@ -20,7 +20,7 @@ final class CssTest extends HtmlValidatorTestCase
     #[DataProvider('allowedCssProvider')]
     public function testAllowedCss(string $css): void
     {
-        $this->assertAccepts("<p style=\"$css\">x</p>");
+        $this->assertAccepts('<p style="' . htmlspecialchars($css, ENT_QUOTES) . '">x</p>');
         $this->assertAccepts("<style>p { $css }</style>");
     }
 
@@ -38,7 +38,7 @@ final class CssTest extends HtmlValidatorTestCase
             'word paste'            => ['mso-bidi-font-weight: normal; tab-stops: 36.0pt'],
             'position fixed'        => ['position: fixed; top: 0; z-index: 9999'],   // a phishing overlay, not script: a known non-goal
             'scroll-behavior'       => ['scroll-behavior: smooth; overscroll-behavior: contain'],
-            'charset'               => ["@charset 'UTF-7';"],   // read only at the start of a stylesheet file, never in a page
+            'charset'               => ['@charset "UTF-7";'],   // read only at the start of a stylesheet file, never in a page
             'empty'                 => [''],
         ];
     }

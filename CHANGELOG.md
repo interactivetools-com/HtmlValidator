@@ -15,12 +15,13 @@ rejects anything that could run script in the page it is printed into, with a `R
 - **`HtmlValidator::check()`** returns a `Result` with `ok` and `errors`, one `Violation`
   per distinct problem, in document order, capped at 50. Nothing throws.
 - **Element allowlist**: the HTML Standard's element index plus the obsolete presentational
-  elements, hyphenated custom elements, and Word's `o:`, `v:` and `w:` prefixed names. Script,
-  plugin, head-level and tokenizer-switching elements are refused with no switch.
-- **Attribute patterns**: `on*` and `srcdoc` refused; `href`, `src` and the other URL
-  attributes limited to `http:`, `https:`, `mailto:`, `tel:` or no scheme, plus
-  `data:image/...` on `<img src>`; `javascript:` refused at the start of every attribute
-  value; unknown attributes pass.
+  elements and Word's `o:`, `v:` and `w:` prefixed names. Script, plugin, head-level and
+  tokenizer-switching elements are refused with no switch.
+- **Attribute allowlist**: the HTML Standard's attribute index minus `srcdoc` and `is`, plus the
+  obsolete presentational attributes, `aria-*` and Word's own; `on*` and unknown names are
+  refused. `href`, `src` and the other URL attributes limited to `http:`, `https:`, `mailto:`,
+  `tel:` or no scheme, plus `data:image/...` on `<img src>`; `javascript:` refused at the
+  start of every attribute value.
 - **CSS check** on the `style` attribute and the `<style>` element: the constructs that ran
   script in some browser, `url()` limited to `http:`, `https:` or relative, and the two
   selectors that leak page data (`[attr^=]` and friends, `unicode-range`).

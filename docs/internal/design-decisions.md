@@ -13,7 +13,7 @@ Contents:
 - [Tokens, Not Trees](#tokens-not-trees)
 - [The Fast Path](#the-fast-path)
 - [The Editor Is Not a Layer](#the-editor-is-not-a-layer)
-- [Elements: Allowlist. Attributes: Patterns](#elements-allowlist-attributes-patterns)
+- [Elements and Attributes: Allowlists](#elements-and-attributes-allowlists)
 - [URL Schemes: Ten Attributes, and `javascript:` Everywhere](#url-schemes-ten-attributes-and-javascript-everywhere)
 - [Unclosed Markup Rejects](#unclosed-markup-rejects)
 - [A `<` in Raw Text Rejects](#a--in-raw-text-rejects)
@@ -83,7 +83,8 @@ author could do; none of them is script.
 - **DOM clobbering.** `id` and `name` pass. `<img name="submit">` inside a form shadows
   `form.submit` for a page script that reads it, and `<a id="config">` shadows
   `window.config`. Refusing them would reject anchors and every named element in old
-  content; the page's own scripts are the CMS's to write defensively.
+  content. A page script that reads a global by name is the CMS's to fix; a framework that
+  runs attributes as code is covered by the attribute allowlist.
 - **`target="_blank"` without `rel="noopener"`.** Every current browser defaults to
   `noopener` for `_blank`, so the opener attack no longer exists.
 - **Unicode whitespace before a scheme.** `href="&#x2028;javascript:x"`: browsers strip only
@@ -246,30 +247,51 @@ So the validator has to catch all of it, and source view, HTML textboxes and the
 the editor anyway. The input and output of that round trip are
 `tests/Support/fixtures/tinymce4/`, both reject fixtures.
 
-## Elements: Allowlist. Attributes: Patterns
+## Elements and Attributes: Allowlists
 
 Elements are an allowlist: the HTML Living Standard's element index, minus everything that
 runs script, loads a plugin, belongs in `<head>`, or switches tokenizer state, plus the
 obsolete presentational elements browsers still render (`font`, `center`, `strike`, `big`,
-`tt`, `marquee` and friends), plus any hyphenated custom element, plus Word's `o:`, `v:` and
-`w:` prefixed names. Every other unknown tag is refused. A denylist fails the first time a
-browser adds an element; an allowlist fails the other way, which costs one line, not an XSS.
-The head-level refusals are not cosmetic: a `<meta http-equiv="refresh">` printed between
-two paragraphs navigated the page in Chrome and Firefox on Windows and in Safari on iOS
-(checked 2026-09-21).
+`tt`, `marquee` and friends), plus Word's `o:`, `v:` and `w:` prefixed names. Every other
+unknown tag is refused. A denylist fails the first time a browser adds an element; an
+allowlist fails the other way, which costs one line, not an XSS. The head-level refusals are
+not cosmetic: a `<meta http-equiv="refresh">` printed between two paragraphs navigated the
+page in Chrome and Firefox on Windows and in Safari on iOS (checked 2026-09-21).
 
-Attributes are patterns, not a per-element list: `on*` is refused by prefix, `srcdoc` by
-name, URL attributes by scheme, `style` by CSS check, and everything else passes. A
-per-element attribute allowlist is what makes HTMLPurifier drop HTML5 and reject
-`data-*` on the elements it does not know. The prefix also covers handlers browsers add
-later (`oncommand`, `onbeforetoggle`, `onscrollend`, `onpagereveal` all arrived after the
-sanitizer denylists were written).
+Attribute names are an allowlist too (settled 2026-10-08), one flat list for every element:
+the HTML Standard's attribute index minus `srcdoc`, `formaction` (its own switch) and `is`,
+plus `role`, `xml:lang`, `xml:space`, the obsolete presentational attributes, the fullscreen
+names in old video embed codes, and what Word writes on VML drawings and content controls.
+`aria-`, `o:`, `v:` and `w:` pass as prefixes, and `xmlns:*` only with an Office namespace.
+`on*` is still refused by prefix first, so handlers browsers add later get their own error.
+
+Why: a browser runs nothing from an unknown attribute, but the page's own JavaScript does.
+Alpine runs `x-init`, HTMX sends `hx-get`, Vue compiles `@click` and `:href`, AngularJS
+evaluates `ng-click`, and _hyperscript runs `_` and `script`. A pattern for framework names
+can't keep up, since `_` and `script` look like any other name; a list of what HTML defines can.
+
+Left out with no switch:
+
+- **`data-*`.** HTMX reads `data-hx-*`, Stimulus `data-action`, Rails `data-method`, Knockout
+  `data-bind`. No Word paste, Mailchimp template or CKEditor file in the corpus uses one; 7 of
+  113 WordPress posts do, all imports (measured 2026-10-08).
+- **Custom elements and `is`.** A page can define `<my-widget>` and run its own code for every
+  copy in the content.
+- **Mailchimp's `mc:*`.** Only in raw Mailchimp templates. One line when a site needs them.
+
+The list is flat because what matters is whether a name is a framework hook, not which element
+carries it; a per-element list is what made HTMLPurifier drop HTML5. Word's names come from
+the corpus's Word pastes; Microsoft's VML reference has more, added when a real paste shows
+one. VML's `on` attribute (`<v:fill on="f">`) falls under the `on*` rule; no paste has it.
+
+`xmlns:*` takes only Office namespaces because of pages served as XHTML, where
+`<o:script xmlns:o="http://www.w3.org/1999/xhtml">` is a script (the same trick as
+`<svg:script>` in SiYuan CVE-2026-34605). An HTML page ignores both.
 
 Rejected (2026-09-14): refusing every scheme-shaped value on every non-URL attribute, with
-a short free-text exception list (`title`, `alt`, `placeholder`, `data-*`, `aria-*`). It
-would reject custom element attributes like `subtitle="Price: on request"` and Tailwind
-classes like `hover:flex`, and the design follows the spec as it stands: a value the browser
-does not read as a URL is not a URL.
+a short free-text exception list (`title`, `alt`, `placeholder`, `aria-*`). It would reject
+values like `subtitle="Price: on request"` and Tailwind classes like `hover:flex`, and the
+design follows the spec as it stands: a value the browser does not read as a URL is not a URL.
 
 ## URL Schemes: Ten Attributes, and `javascript:` Everywhere
 
@@ -277,8 +299,7 @@ The URL attributes are the ones current browsers resolve on an allowed element: 
 `src`, `action`, `formaction`, `poster`, `ping`, `srcset`, `cite`, `longdesc`, `background`.
 On those only `http`, `https`, `mailto`, `tel` or no scheme pass. `data`, `xlink:href`,
 `manifest`, `dynsrc` and `lowsrc` are not on the list: they are URLs only on `<object>`,
-`<svg>` and `<html>`, all refused, or in no current browser, and `data=` on a custom element
-was a real false positive.
+`<svg>` and `<html>`, all refused, or in no current browser.
 
 The scheme list is the `$urlSchemes` setting, not a constant, because the four defaults are
 the schemes every browser handles itself and a site may want `sms:`, `whatsapp:` or an app
@@ -294,7 +315,7 @@ after the first check rebuilds it; that matters when a scheme is removed, since 
 pattern would still step over it.
 
 Every other attribute refuses only `javascript:`. The browser ignores it in `title=` or
-`data-href=`, but a page script that copies the value into a link or into `location` runs it
+`value=`, but a page script that copies the value into a link or into `location` runs it
 (the clickable-row pattern). `vbscript:` runs nowhere and `data:` never runs as the page, so
 both pass there.
 
@@ -446,7 +467,8 @@ pictures as `data:` URLs, and about a quarter of the corpus's failed for the ima
 ## Word's Prefixed Elements Pass
 
 `<o:p>`, `<v:shape>`, `<w:sdt>` and any other name under Word's three prefixes (`o:` Office,
-`v:` VML drawing, `w:` Word) pass as unknown elements, with the normal attribute rules. Word
+`v:` VML drawing, `w:` Word) pass as unknown elements, with the normal attribute rules
+(Alpine runs `x-init` on `<o:p>` as on any element). Word
 365 still writes `<o:p>` at the end of every paragraph it copies, so the tags are in most raw
 Word pastes, and a WYSIWYG user cannot see them to remove them. Checked 2026-09-21 in
 headless Chrome and in PHP 8.4's parser (Lexbor): each is an unknown element in the HTML
@@ -500,6 +522,9 @@ states. Checked 2026-09-14:
 
 The one real gap is a future URL-bearing attribute on an allowed element. Closed by running
 the `javascript:` check on every attribute value, not only the named URL attributes.
+
+A new attribute in the spec is one line in `ATTRIBUTES`, like a new element: until then it is
+refused, not passed. Both lists come from https://html.spec.whatwg.org/multipage/indices.html.
 
 ## Precedent
 

@@ -35,8 +35,8 @@ refuses the save.
 
 It runs the HTML5 tokenizer on the content and checks each start tag as it comes out. No tree
 is built, so the tags and attributes it checks are the ones a browser reads from the same
-bytes. Elements are an allowlist. Attributes are checked by pattern (`on*`, a short refused
-list, URL schemes, CSS), so attributes it has never seen pass.
+bytes. Elements and attribute names are allowlists, so a name it has never seen is refused.
+Attribute values get the URL scheme and CSS checks.
 
 ```php
 use Itools\HtmlValidator\HtmlValidator;
@@ -58,9 +58,10 @@ HtmlValidator::check(string $html): Result   // time grows with the size of the 
 HtmlValidator::rules(): array                // the rule tables and the current switch values, for settings pages and debugging
 ```
 
-`rules()` returns an array with the keys `elements`, `formElements`, `attributesRefused`,
-`formAttributes`, `urlSchemes`, `scriptSchemes`, `cssUrlSchemes`, `urlAttributes`,
-`allowForms`, `allowStyles`, `allowEmbeds` and `iframeHosts`. See [Rule Tables](#rule-tables).
+`rules()` returns an array with the keys `elements`, `formElements`, `attributes`,
+`attributePrefixes`, `officeNamespaces`, `formAttributes`, `urlSchemes`, `scriptSchemes`,
+`cssUrlSchemes`, `urlAttributes`, `allowForms`, `allowStyles`, `allowEmbeds` and
+`iframeHosts`. See [Rule Tables](#rule-tables).
 The keys are copies of the constants and the current switch values; changing the returned
 array changes nothing.
 
@@ -170,7 +171,7 @@ Every code, its template, and what `detail` holds. Templates are `Violation::TEM
 | `control-character`      | `Content contains a control character: %s`                                                      | the character escaped (`\000`, `\033`, `\f`, `\v`) and ` at byte N`, for the first one found                                                             |
 | `element-not-allowed`    | `%s is not allowed`                                                                             | the start tag as written, from `<` to `>` (`<script src="x">`), or the doctype (`<!DOCTYPE html>`)                                                        |
 | `event-handler`          | `%s= event handler attributes are not allowed`                                                  | the attribute name, lowercased (`onclick`)                                                                                                                |
-| `attribute-not-allowed`  | `The %s attribute is not allowed`                                                               | `srcdoc`, or `formaction` while `$allowForms` is off, or `style` while `$allowStyles` is off                                                               |
+| `attribute-not-allowed`  | `The %s attribute is not allowed`                                                               | the attribute name, lowercased (`data-id`, `x-init`, `srcdoc`), or for an `xmlns:*` declaration the name and value (`xmlns:o="http://www.w3.org/1999/xhtml"`) |
 | `url-scheme-not-allowed` | `The URL in %s must start with http:, https:, mailto:, tel: or another allowed scheme`          | the attribute name and its decoded value (`href="javascript:alert(1)"`)                                                                                   |
 | `iframe-host`            | `Embedding frames from %s is not allowed`                                                       | the `src` value with whitespace removed (`https://evil.example/x`), or `(no src)`                                                                         |
 | `css-not-allowed`        | `CSS containing %s is not allowed`                                                              | the banned token as matched (`expression(`, `\`, `[value^=`, `unicode-range`) or the `url()` with its target (`url(javascript:x)`), or the first 80 characters of a block past the PCRE limit (megabytes of `x*|` pairs inside one `[`) |
@@ -199,9 +200,9 @@ control characters inside a detail are escaped (`\n`), so a detail is always one
    so the result is the same with `$fastPath` off.
 4. **Per start tag**, in this order: the element must be allowed, or the tag reports
    `element-not-allowed` and its attributes are skipped. An `<iframe>` then has its `src` host
-   checked. Then each attribute: an `on*` name reports `event-handler`; a refused name reports
-   `attribute-not-allowed`; `style` is checked as CSS; every other value has its URL scheme
-   checked.
+   checked. Then each attribute: an `on*` name reports `event-handler`; a name not on the
+   allowlist reports `attribute-not-allowed`; `style` is checked as CSS; every other value has
+   its URL scheme checked.
 5. **Unclosed markup.** If the content ended inside a tag, a comment, a doctype or a raw-text
    element, `unclosed-markup` is added last.
 6. **Cap.** The check stops after `$maxErrors` distinct errors.
@@ -226,8 +227,6 @@ For every start tag, by its lowercased name:
 - `iframe`: passes when `$allowEmbeds` is set, then its `src` is checked, see
   [Iframes](#rules-iframes).
 - In `FORM_ELEMENTS`: passes when `$allowForms` is set.
-- A custom element name (a letter, then letters, digits, `.` or `_`, then a hyphen, then any
-  of those and hyphens: `my-widget`, `x-1.0_b-c`, `widget-`): passes.
 - A Word name (`o:`, `v:` or `w:`, then a letter, then letters and digits: `o:p`, `v:shape`,
   `w:sdtPr`): passes.
 - Anything else: `element-not-allowed` with the tag as written. The tag's attributes are not
@@ -242,10 +241,11 @@ Not allowed on purpose, so never add them to content to "fix" a rejection:
 - Page-level: `html`, `head`, `body`, `title`, `meta`, `base`, `link`, `frameset`, `frame`.
 - Elements whose content is text to a browser and has no use in content: `plaintext`, `xmp`,
   `noembed`, `noframes`.
-- Names with a namespace prefix (`t:set`, `svg:rect`, `xsl:template`): the colon is not a
-  custom element character, so they are unknown. The exception is Word's three prefixes:
-  `o:`, `v:` and `w:` (`o:p`, `v:shape`, `w:sdt`) pass with any name after the colon, as
-  unknown elements a browser does nothing with, and their attributes get the normal rules.
+- Custom elements (`my-widget`, `product-card`): a page script can define one and run its own
+  code for every copy in the content.
+- Names with a namespace prefix (`t:set`, `svg:rect`, `xsl:template`). The exception is Word's
+  `o:`, `v:` and `w:` (`o:p`, `v:shape`, `w:sdt`), which pass with any name after the colon as
+  unknown elements a browser does nothing with; their attributes get the normal rules.
 
 End tags are never checked: `</script>` with no start tag is fine. Text is never checked:
 `&lt;script&gt;` is text to a browser and to the validator. Comments are not checked:
@@ -262,16 +262,24 @@ For every attribute on an allowed element, by its lowercased name, in this order
    allowed attribute starts with `on`, and the prefix covers handlers added in future
    browsers. The name is checked as written: `on&#99;lick` is refused although a browser
    would not decode it either.
-2. A name in `ATTRIBUTES_REFUSED` (`srcdoc`): `attribute-not-allowed`. It is a whole
-   document with script allowed.
-3. A name in `FORM_ATTRIBUTES` (`formaction`) while `$allowForms` is off:
-   `attribute-not-allowed`. With forms on it is a URL attribute.
-4. `style` while `$allowStyles` is off: `attribute-not-allowed`. With styles on its value is
+2. A name not on the allowlist: `attribute-not-allowed`. A name passes when it is
+   - in `ATTRIBUTES`, on any element: the HTML Standard's attribute index minus `srcdoc`,
+     `formaction` and `is`, plus `role`, `xml:lang`, `xml:space`, the obsolete presentational
+     attributes (`align`, `bgcolor`) and Word's own (`coordsize`, `sdttag`). See
+     [Rule Tables](#rule-tables)
+   - prefixed by `aria-`, `o:`, `v:` or `w:` (`ATTRIBUTE_PREFIXES`)
+   - `xmlns:` and any prefix, with a value starting with an entry in `OFFICE_NAMESPACES`. Any
+     other value is reported with the name; in a page served as XHTML,
+     `<o:script xmlns:o="http://www.w3.org/1999/xhtml">` is a script
+   - `formaction` (`FORM_ATTRIBUTES`) while `$allowForms` is set; it is then a URL attribute
+3. `style` while `$allowStyles` is off: `attribute-not-allowed`. With styles on its value is
    checked as CSS, see [CSS](#rules-css).
-5. Every other attribute: the value's URL scheme is checked, see [URLs](#rules-urls).
+4. Every other attribute: the value's URL scheme is checked, see [URLs](#rules-urls).
 
-Any attribute name not covered above passes whatever the element: `class`, `id`, `data-*`,
-`aria-*`, `role`, `contenteditable`, `target`, `xmlns:o`, and names nothing defines.
+Refused, among others: `data-*` (HTMX `data-hx-get`, Stimulus `data-action`), `srcdoc`, `is`,
+framework directives (`x-init`, `@click`, `:href`, `hx-get`, `ng-click`, `_`, `script`),
+`xlink:href`, bare `xmlns`, Mailchimp's `mc:edit`, and made-up names. A page's own JavaScript
+can run code from these; a browser never does.
 
 Duplicate attributes: the first wins and the rest are dropped, as in browsers. So
 `<a href="https://x" href="javascript:y">` passes and the reverse order rejects.
@@ -293,10 +301,10 @@ and `&#106;avascript:` are `javascript:` too. A value with no scheme (a relative
   browser decodes an `img` resource as a picture and nothing else. `data:` on `srcset`,
   `poster` or `href`, in an `<iframe>` or in CSS `url()` still rejects.
 - On every other attribute, only the schemes in `SCRIPT_SCHEMES` reject: `javascript`. A
-  browser ignores `javascript:` in `title=` or `data-href=`, but a page script that copies the
+  browser ignores `javascript:` in `title=` or `value=`, but a page script that copies the
   value into a link or into `location` runs it. `vbscript:` and `data:` pass there because
-  no current browser runs either as the page; `title="Note: x"`, `data-time="noon:sharp"` and
-  a custom element's `data="Note: x"` pass because they are not URLs.
+  no current browser runs either as the page; `title="Note: x"`, `aria-label="noon:sharp"` and
+  `data="Note: x"` pass because they are not URLs.
 
 The detail is the attribute name and the decoded value: `href="javascript:alert(1)"`.
 
@@ -457,9 +465,39 @@ output
 ```
 <!-- /rules:formElements -->
 
-**`attributesRefused`** (always `attribute-not-allowed`): <!-- rules:attributesRefused -->
-`srcdoc`
-<!-- /rules:attributesRefused -->
+**`attributes`** (pass on any element; every other name is `attribute-not-allowed`):
+
+<!-- rules:attributes -->
+```text
+abbr accept accept-charset accesskey action allow allowfullscreen alpha alt as async autocapitalize
+autocomplete autocorrect autofocus autoplay blocking charset checked cite class closedby color
+colorspace cols colspan command commandfor content contenteditable controls coords crossorigin data
+datetime decoding default defer dir dirname disabled download draggable enctype enterkeyhint
+fetchpriority for form formenctype formmethod formnovalidate formtarget headers headingoffset
+headingreset height hidden high href hreflang http-equiv id imagesizes imagesrcset inert inputmode
+integrity ismap itemid itemprop itemref itemscope itemtype kind label lang list loading loop low max
+maxlength media method min minlength multiple muted name nomodule nonce novalidate open optimum
+pattern ping placeholder playsinline popover popovertarget popovertargetaction poster preload
+readonly referrerpolicy rel required reversed rows rowspan sandbox scope selected shadowrootclonable
+shadowrootcustomelementregistry shadowrootdelegatesfocus shadowrootmode shadowrootserializable
+shadowrootslotassignment shape size sizes slot span spellcheck src srclang srcset start step style
+tabindex target title translate type usemap value width wrap writingsuggestions role xml:lang
+xml:space align axis background bgcolor border bordercolor cellpadding cellspacing char charoff
+clear compact face frame frameborder hspace longdesc marginheight marginwidth noshade nowrap rules
+scrolling summary valign vspace allowtransparency mozallowfullscreen webkitallowfullscreen arcsize
+arrowok aspectratio coordsize eqn fill fillcolor filled from gradientshapeok inset joinstyle opacity
+path stroke strokecolor stroked strokeweight to docpart prefixmappings sdttag showingplchdr
+storeitemid temporary text xpath
+```
+<!-- /rules:attributes -->
+
+**`attributePrefixes`** (pass with any name after the prefix): <!-- rules:attributePrefixes -->
+`aria-`, `o:`, `v:`, `w:`
+<!-- /rules:attributePrefixes -->
+
+**`officeNamespaces`** (what an `xmlns:*` value may start with): <!-- rules:officeNamespaces -->
+`urn:schemas-microsoft-com:`, `http://schemas.microsoft.com/office/`
+<!-- /rules:officeNamespaces -->
 
 **`formAttributes`** (`attribute-not-allowed` unless `allowForms` is set): <!-- rules:formAttributes -->
 `formaction`
@@ -540,8 +578,8 @@ form or the API before the check.
 - **Not checked:** whether the HTML is valid or well nested, `id` and `name` (DOM
   clobbering), `target`, external images and other tracking loads, `position: fixed` and other
   layout overlays, content length, and what the text says.
-- **Custom elements pass with any attributes** except `on*`, `srcdoc` and scheme-bearing
-  values. `<my-link url="javascript:x">` rejects; `<my-link url="https://x">` passes.
+- **No `data-*` and no custom elements.** A page script can run code from either. Use `class`
+  or `id` for a custom value.
 - **`data:` images pass on `<img src>`** (any image type, `svg+xml` included). Every other
   `data:` URL is refused.
 - **Switches are process-wide.** They are static properties, so a change in one request

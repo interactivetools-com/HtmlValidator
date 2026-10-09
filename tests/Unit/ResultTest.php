@@ -100,11 +100,13 @@ final class ResultTest extends HtmlValidatorTestCase
     {
         $rules = HtmlValidator::rules();
         $this->assertSame(
-            ['elements', 'formElements', 'attributesRefused', 'formAttributes', 'urlSchemes', 'scriptSchemes', 'cssUrlSchemes', 'urlAttributes', 'allowForms', 'allowStyles', 'allowEmbeds', 'iframeHosts'],
+            ['elements', 'formElements', 'attributes', 'attributePrefixes', 'officeNamespaces', 'formAttributes', 'urlSchemes', 'scriptSchemes', 'cssUrlSchemes', 'urlAttributes', 'allowForms', 'allowStyles', 'allowEmbeds', 'iframeHosts'],
             array_keys($rules),
         );
         $this->assertContains('p', $rules['elements']);
         $this->assertNotContains('script', $rules['elements']);
+        $this->assertContains('class', $rules['attributes']);
+        $this->assertNotContains('srcdoc', $rules['attributes']);
         $this->assertFalse($rules['allowForms']);
         $this->withSettings(['allowForms' => true], fn() => $this->assertTrue(HtmlValidator::rules()['allowForms']));
     }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Itools\HtmlValidator;
 
 // import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
-use function addcslashes, array_diff, array_map, array_values, count, implode, in_array, preg_match, preg_match_all, preg_quote, preg_replace, str_replace, str_starts_with, stripos, strlen, strncasecmp, strpos, strtolower, substr, trim;
+use function addcslashes, array_diff, array_intersect, array_map, array_unique, array_values, count, implode, in_array, preg_match, preg_match_all, preg_quote, preg_replace, str_replace, str_starts_with, stripos, strlen, strncasecmp, strpos, strtolower, substr, trim;
 
 use const PREG_OFFSET_CAPTURE;
 
@@ -23,12 +23,13 @@ use const PREG_OFFSET_CAPTURE;
  *     HtmlValidator::$iframeHosts[] = 'example.com';
  *     $rules = HtmlValidator::rules();              // the tables and current switches, for docs and settings pages
  *
- * Elements are an allowlist: the HTML Standard's element index minus everything that runs
- * script, loads a plugin, belongs in <head>, or changes how a browser reads the bytes after
- * it, plus custom elements (any name with a hyphen). Attributes are pattern-based: on* and
- * srcdoc are refused, URL attributes may only use http, https, mailto and tel, no attribute
- * may start with javascript:, and CSS is checked for the constructs that once ran script and
- * the two selectors that leak page data. Unknown attributes pass.
+ * Elements and attributes are allowlists. Elements: the HTML Standard's element index minus
+ * everything that runs script, loads a plugin, belongs in <head>, or changes how a browser
+ * reads the bytes after it, plus Word's o:, v: and w: names. Attributes: the HTML Standard's
+ * attribute index minus srcdoc and is, the old presentational ones, aria-*, and Word's own.
+ * on* is refused by prefix, URL attributes may only use http, https, mailto and tel, no
+ * attribute may start with javascript:, and CSS is checked for the constructs that once ran
+ * script and the two selectors that leak page data. Unknown elements and attributes are refused.
  *
  * The check runs on the HTML5 token stream and never builds a tree, so it sees the same
  * tags and attributes a browser does, in one pass, with memory that does not grow with
@@ -69,10 +70,60 @@ final class HtmlValidator
     public const FORM_ELEMENTS = ['form', 'input', 'button', 'select', 'selectedcontent', 'option', 'optgroup', 'datalist', 'textarea', 'label', 'fieldset', 'legend', 'output'];
 
     /**
-     * Refused on every element. The on* attributes are refused too, by prefix rather than by name, so new
-     * event handlers are covered without a list.
+     * Attribute names that pass, on any element. Every other name is refused, including the ones a page's own
+     * JavaScript reads as code (Alpine x-init, HTMX hx-get, Vue @click, Stimulus data-action). A listed name
+     * can still be refused: style when $allowStyles is off. Every value still gets the URL and CSS checks.
      */
-    public const ATTRIBUTES_REFUSED = ['srcdoc'];
+    public const ATTRIBUTES = [
+        // The HTML Standard's attribute index, minus srcdoc (a whole document with script allowed), formaction
+        // (FORM_ATTRIBUTES) and is (runs a page script's custom element code on the tag)
+        'abbr', 'accept', 'accept-charset', 'accesskey', 'action', 'allow', 'allowfullscreen', 'alpha', 'alt', 'as', 'async',
+        'autocapitalize', 'autocomplete', 'autocorrect', 'autofocus', 'autoplay',
+        'blocking', 'charset', 'checked', 'cite', 'class', 'closedby', 'color', 'colorspace', 'cols', 'colspan', 'command',
+        'commandfor', 'content', 'contenteditable', 'controls', 'coords', 'crossorigin',
+        'data', 'datetime', 'decoding', 'default', 'defer', 'dir', 'dirname', 'disabled', 'download', 'draggable',
+        'enctype', 'enterkeyhint', 'fetchpriority', 'for', 'form', 'formenctype', 'formmethod', 'formnovalidate', 'formtarget',
+        'headers', 'headingoffset', 'headingreset', 'height', 'hidden', 'high', 'href', 'hreflang', 'http-equiv',
+        'id', 'imagesizes', 'imagesrcset', 'inert', 'inputmode', 'integrity', 'ismap', 'itemid', 'itemprop', 'itemref',
+        'itemscope', 'itemtype', 'kind', 'label', 'lang', 'list', 'loading', 'loop', 'low',
+        'max', 'maxlength', 'media', 'method', 'min', 'minlength', 'multiple', 'muted', 'name', 'nomodule', 'nonce', 'novalidate',
+        'open', 'optimum', 'pattern', 'ping', 'placeholder', 'playsinline', 'popover', 'popovertarget', 'popovertargetaction',
+        'poster', 'preload', 'readonly', 'referrerpolicy', 'rel', 'required', 'reversed', 'rows', 'rowspan',
+        'sandbox', 'scope', 'selected', 'shadowrootclonable', 'shadowrootcustomelementregistry', 'shadowrootdelegatesfocus',
+        'shadowrootmode', 'shadowrootserializable', 'shadowrootslotassignment', 'shape', 'size', 'sizes', 'slot', 'span',
+        'spellcheck', 'src', 'srclang', 'srcset', 'start', 'step', 'style', 'tabindex', 'target', 'title', 'translate', 'type',
+        'usemap', 'value', 'width', 'wrap', 'writingsuggestions',
+
+        // Accessibility roles, and the xml: forms of lang and space that Word and XHTML pastes carry
+        'role', 'xml:lang', 'xml:space',
+
+        // Obsolete presentational attributes browsers still render, and the fullscreen names in old video embed codes
+        'align', 'axis', 'background', 'bgcolor', 'border', 'bordercolor', 'cellpadding', 'cellspacing', 'char', 'charoff',
+        'clear', 'compact', 'face', 'frame', 'frameborder', 'hspace', 'longdesc', 'marginheight', 'marginwidth', 'noshade',
+        'nowrap', 'rules', 'scrolling', 'summary', 'valign', 'vspace',
+        'allowtransparency', 'mozallowfullscreen', 'webkitallowfullscreen',
+
+        // Word drawings (VML), which no current browser draws. Listed so a Word paste is not refused for markup
+        // nobody can see in the editor
+        'arcsize', 'arrowok', 'aspectratio', 'coordsize', 'eqn', 'fill', 'fillcolor', 'filled', 'from', 'gradientshapeok',
+        'inset', 'joinstyle', 'opacity', 'path', 'stroke', 'strokecolor', 'stroked', 'strokeweight', 'to',
+
+        // Word content controls (<w:sdt>): placeholder and data-binding settings only Word reads
+        'docpart', 'prefixmappings', 'sdttag', 'showingplchdr', 'storeitemid', 'temporary', 'text', 'xpath',
+    ];
+
+    /**
+     * Attribute names that pass with anything after the prefix: aria-* (read by screen readers, never run),
+     * and Word's Office, VML and Word prefixes (o:spid, v:ext), which nothing outside Office reads.
+     */
+    public const ATTRIBUTE_PREFIXES = ['aria-', 'o:', 'v:', 'w:'];
+
+    /**
+     * Values an xmlns:* attribute may start with: the Microsoft Office namespaces Word pastes declare
+     * (xmlns:o="urn:schemas-microsoft-com:office:office"). In a page served as XHTML, a prefix bound to
+     * the XHTML namespace would make <o:script> a script.
+     */
+    public const OFFICE_NAMESPACES = ['urn:schemas-microsoft-com:', 'http://schemas.microsoft.com/office/'];
 
     /**
      * Attribute names that pass only when $allowForms is set.
@@ -81,7 +132,7 @@ final class HtmlValidator
 
     /**
      * Schemes refused at the start of every attribute value, URL attribute or not. The browser
-     * ignores a javascript: in title= or data-href=, but a page script that copies the value
+     * ignores a javascript: in title= or value=, but a page script that copies the value
      * into a link or into location runs it, so no value may start with one.
      */
     public const SCRIPT_SCHEMES = ['javascript'];
@@ -94,15 +145,12 @@ final class HtmlValidator
     /**
      * Attributes current browsers resolve as URLs on an allowed element. Their values must have
      * no scheme or one in $urlSchemes. Every other attribute value only has to avoid
-     * SCRIPT_SCHEMES, so title="Note: x" and a custom element's data="Note: x" pass.
+     * SCRIPT_SCHEMES, so title="Note: x" and data="Note: x" pass.
      */
     public const URL_ATTRIBUTES = ['href', 'src', 'action', 'formaction', 'poster', 'ping', 'srcset', 'cite', 'longdesc', 'background'];
 
     //endregion
     //region Patterns and Limits
-
-    // a custom element name: a letter, then letters, digits, dots or underscores, with at least one hyphen
-    private const CUSTOM_ELEMENT = '/^[a-z][a-z0-9._]*-[a-z0-9._-]*$/';
 
     // a Word element name: the o: (Office), v: (VML drawing) or w: (Word) prefix, then letters and digits. A browser
     // makes an unknown element of it, which does nothing; the attributes get the normal rules
@@ -180,8 +228,8 @@ final class HtmlValidator
 
     /**
      * Returns the rule tables and the current switches, keyed by name: elements, formElements,
-     * attributesRefused, formAttributes, urlSchemes, scriptSchemes, cssUrlSchemes, urlAttributes, allowForms,
-     * allowStyles, allowEmbeds, iframeHosts. For documentation, debugging and settings pages.
+     * attributes, attributePrefixes, officeNamespaces, formAttributes, urlSchemes, scriptSchemes, cssUrlSchemes,
+     * urlAttributes, allowForms, allowStyles, allowEmbeds, iframeHosts. For documentation, debugging and settings pages.
      *
      * @return array<string, mixed>
      */
@@ -190,7 +238,9 @@ final class HtmlValidator
         return [
             'elements'          => self::ELEMENTS,
             'formElements'      => self::FORM_ELEMENTS,
-            'attributesRefused' => self::ATTRIBUTES_REFUSED,
+            'attributes'        => self::ATTRIBUTES,
+            'attributePrefixes' => self::ATTRIBUTE_PREFIXES,
+            'officeNamespaces'  => self::OFFICE_NAMESPACES,
             'formAttributes'    => self::FORM_ATTRIBUTES,
             'urlSchemes'        => self::urlSchemes(),
             'scriptSchemes'     => self::SCRIPT_SCHEMES,
@@ -376,12 +426,14 @@ final class HtmlValidator
         // CSS with none of the punctuation the CSS check reads (\ escapes, ( every function, @ at-rules, [ selectors,
         // & references) and none of the three bare words on CSS_FORBIDDEN
         $css = '(?:(?!-moz-binding|(?<![a-z0-9-])behavior\s*+:|unicode-range)[^"\\\\()@\[&<>])*+';
-        // style="css" when styles are on; a URL attribute with a url; any other name that is not on* or refused, with a value
-        $urlNames     = implode('|', array_diff(self::URL_ATTRIBUTES, self::FORM_ATTRIBUTES));
-        $refusedNames = implode('|', [...self::ATTRIBUTES_REFUSED, ...self::FORM_ATTRIBUTES, 'style']);
-        $attribute    = ($styles ? 'style="' . $css . '"|' : '')
-            . '(?:' . $urlNames . ')="' . $url . '"'
-            . '|(?!on|(?:' . $refusedNames . ')=)[a-z][a-z0-9-]*+="' . $value . '"';
+        // style="css" when styles are on; a URL attribute with a url; any other listed name or aria-*, with a value
+        $urlNames   = array_diff(self::URL_ATTRIBUTES, self::FORM_ATTRIBUTES);
+        // the regex tries the names in order until one matches, so the ones editors write most go first
+        $common     = array_intersect(['class', 'id', 'title', 'alt', 'width', 'height', 'lang', 'align', 'valign', 'border', 'cellpadding', 'cellspacing', 'colspan', 'rowspan', 'target', 'rel'], self::ATTRIBUTES);
+        $plainNames = array_map(preg_quote(...), array_unique([...$common, ...array_diff(self::ATTRIBUTES, $urlNames, ['style'])]));
+        $attribute  = ($styles ? 'style="' . $css . '"|' : '')
+            . '(?:' . implode('|', $urlNames) . ')="' . $url . '"'
+            . '|(?:' . implode('|', $plainNames) . '|aria-[a-z0-9-]*+)="' . $value . '"';
         // text up to a <, a < that starts nothing (text too), an end tag, or a listed element's start tag with
         // space-separated attributes; as many of those as follow. The lone < needs its next byte in view: the tokenizer
         // may run this over a window of the input, and a < on the window's edge could be the start of <script>
@@ -418,7 +470,6 @@ final class HtmlValidator
             'style'  => self::$allowStyles,
             'iframe' => self::$allowEmbeds,
             default  => (self::$allowForms && in_array($name, self::FORM_ELEMENTS, true))
-                        || preg_match(self::CUSTOM_ELEMENT, $name) === 1
                         || preg_match(self::WORD_ELEMENT, $name) === 1,
         };
     }
@@ -429,11 +480,8 @@ final class HtmlValidator
             $this->fail('event-handler', $attribute);
             return;
         }
-        if (in_array($attribute, self::ATTRIBUTES_REFUSED, true)
-            || (!self::$allowForms && in_array($attribute, self::FORM_ATTRIBUTES, true))
-            || (!self::$allowStyles && $attribute === 'style')
-        ) {
-            $this->fail('attribute-not-allowed', $attribute);
+        if (!self::attributeAllowed($attribute, $value)) {
+            $this->fail('attribute-not-allowed', str_starts_with($attribute, 'xmlns:') ? self::excerpt("$attribute=\"$value\"") : $attribute);
             return;
         }
         if ($attribute === 'style') {
@@ -453,6 +501,22 @@ final class HtmlValidator
         if (!$allowed) {
             $this->fail('url-scheme-not-allowed', self::excerpt("$attribute=\"$value\""));
         }
+    }
+
+    /**
+     * A listed name, a listed prefix, an xmlns:* declaration of an Office namespace, or formaction while
+     * $allowForms is on. style is listed but passes only while $allowStyles is on
+     */
+    private static function attributeAllowed(string $attribute, string $value): bool
+    {
+        if (in_array($attribute, self::ATTRIBUTES, true)) {
+            return $attribute !== 'style' || self::$allowStyles;
+        }
+        if (str_starts_with($attribute, 'xmlns:')) {
+            return self::startsWithAny($value, self::OFFICE_NAMESPACES);
+        }
+        return self::startsWithAny($attribute, self::ATTRIBUTE_PREFIXES)
+            || (self::$allowForms && in_array($attribute, self::FORM_ATTRIBUTES, true));
     }
 
     /**
@@ -540,6 +604,21 @@ final class HtmlValidator
     private function source(Token $token): string
     {
         return substr($this->html, $token->start, $token->end - $token->start);
+    }
+
+    /**
+     * True when $value starts with one of $prefixes
+     *
+     * @param string[] $prefixes
+     */
+    private static function startsWithAny(string $value, array $prefixes): bool
+    {
+        foreach ($prefixes as $prefix) {
+            if (str_starts_with($value, $prefix)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
